@@ -6,7 +6,9 @@ import { cn } from '@/lib/utils'
 import { RevealedLists } from '../client/components/RevealedLists'
 import { gameQuery } from '../client/queries'
 
-export const Route = createFileRoute('/g/$token/game/$gameId')({
+// The trailing underscore keeps the URL but lifts this out from under
+// `/g/$token`, which is a whole page with no outlet for a child to render in.
+export const Route = createFileRoute('/g/$token_/game/$gameId')({
   loader: async ({ context, params }) => {
     if (!(await context.queryClient.ensureQueryData(gameQuery(params.token, params.gameId)))) throw notFound()
   },
