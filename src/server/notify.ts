@@ -22,7 +22,7 @@ function report(results: PromiseSettledResult<unknown>[]) {
 export function buildNotifier(repository: Repository, email: EmailDelivery, appUrl: () => string): Notifier {
   const groupLink = (gameId: string) => {
     const group = repository.groupOfGame(gameId)
-    return group ? { group, url: `${appUrl()}/c/${group.token}` } : undefined
+    return group ? { group, url: `${appUrl()}/g/${group.token}` } : undefined
   }
 
   return {
