@@ -1,4 +1,4 @@
-import { MEMBERS_MAX, RETENTION_MS, gameView, normalizeList } from '../core/game'
+import { MEMBERS_MAX, MEMBERS_MIN, RETENTION_MS, gameView, normalizeList } from '../core/game'
 import type { CrewView, GameView, MemberRecord } from '../core/game'
 import type { Repository } from '../db/repository'
 import { createId, createToken } from './crypto'
@@ -82,6 +82,29 @@ export class BlindListsService {
     const result = this.repository.sealList({ gameId: game.id, memberId: viewer.id, list: text, now: this.clock() })
     if (result === 'unknown') throw new Response('you are not playing in this game', { status: 403 })
     if (result === 'locked') throw locked()
+    return this.crewView(token, viewerId)
+  }
+
+  /** Puts a crew member into the running game — yourself when you decide you are playing after all. */
+  joinGame(token: string, viewerId: string | undefined, memberId: string): CrewView {
+    const { crew, members } = this.crew(token)
+    this.requireMember(members, viewerId)
+    if (!members.some((member) => member.id === memberId)) throw notFound()
+    const game = this.repository.activeGame(crew.id)
+    if (!game) throw new Response('there is no game running', { status: 409 })
+    const result = this.repository.joinGame({ gameId: game.id, memberId, now: this.clock() })
+    if (result === 'unknown') throw notFound()
+    if (result === 'locked') throw locked()
+    if (result === 'already-in') throw new Response('they are already in this game', { status: 409 })
+    return this.crewView(token, viewerId)
+  }
+
+  removeMember(token: string, viewerId: string | undefined, memberId: string): CrewView {
+    const { crew, members } = this.crew(token)
+    this.requireMember(members, viewerId)
+    const result = this.repository.removeMember({ crewId: crew.id, memberId, now: this.clock() })
+    if (result === 'unknown') throw notFound()
+    if (result === 'too-few') throw new Response(`a crew keeps at least ${MEMBERS_MIN} players`, { status: 409 })
     return this.crewView(token, viewerId)
   }
 

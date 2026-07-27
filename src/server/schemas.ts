@@ -24,6 +24,6 @@ export const startGameSchema = z.object({ token, memberIds: z.array(id).min(2).m
 
 export const sealListSchema = z.object({ token, list: z.string().min(1).max(LIST_MAX_LENGTH) })
 
-export const dropPlayerSchema = z.object({ token, memberId: id })
+export const memberSchema = z.object({ token, memberId: id })
 
 export const addMemberSchema = z.object({ token, name: memberName })

@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { Link, createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
-import { LIST_MAX_LENGTH, NAME_MAX_LENGTH } from '../core/game'
+import { Link, createFileRoute, notFound } from '@tanstack/react-router'
+import { useState, type ReactNode } from 'react'
+import { LIST_MAX_LENGTH, NAME_MAX_LENGTH, canRemoveMember } from '../core/game'
 import type { CrewView, EntryView, GameView, MemberRecord } from '../core/game'
 import { CopyButton } from '../client/components/CopyButton'
 import { GameHeader } from '../client/components/GameHeader'
@@ -9,10 +9,12 @@ import { RevealedLists } from '../client/components/RevealedLists'
 import { crewQuery } from '../client/queries'
 import { errorMessage } from '../client/queryClient'
 import { useOrigin } from '../client/useOrigin'
-import { addMember, claimMember, dropPlayer, forgetMember, sealList, startGame } from '../server/fns'
+import { addMember, claimMember, dropPlayer, forgetMember, joinGame, removeMember, sealList, startGame } from '../server/fns'
 
 export const Route = createFileRoute('/c/$token')({
-  loader: ({ context, params }) => context.queryClient.ensureQueryData(crewQuery(params.token)),
+  loader: async ({ context, params }) => {
+    if (!(await context.queryClient.ensureQueryData(crewQuery(params.token)))) throw notFound()
+  },
   component: CrewPage,
 })
 
@@ -28,6 +30,7 @@ function useCrewMutation<TInput>(token: string, call: (input: TInput) => Promise
 function CrewPage() {
   const { token } = Route.useParams()
   const { data: crew } = useSuspenseQuery(crewQuery(token))
+  if (!crew) throw notFound()
 
   return (
     <main>
@@ -36,7 +39,7 @@ function CrewPage() {
         {crew.viewer && <Identity token={token} viewer={crew.viewer} />}
       </header>
 
-      {crew.viewer ? <CrewBody token={token} crew={crew} /> : <WhoAreYou token={token} members={crew.members} />}
+      {crew.viewer ? <CrewBody token={token} crew={crew} viewer={crew.viewer} /> : <WhoAreYou token={token} members={crew.members} />}
     </main>
   )
 }
@@ -71,18 +74,19 @@ function WhoAreYou({ token, members }: { token: string; members: MemberRecord[] 
   )
 }
 
-function CrewBody({ token, crew }: { token: string; crew: CrewView }) {
+function CrewBody({ token, crew, viewer }: { token: string; crew: CrewView; viewer: MemberRecord }) {
   return (
     <div className="space-y-10">
-      {crew.currentGame && <CurrentGame token={token} game={crew.currentGame} />}
+      {crew.currentGame && <CurrentGame token={token} game={crew.currentGame} members={crew.members} viewer={viewer} />}
       {crew.canStartGame && <StartGame token={token} members={crew.members} />}
       <History token={token} crew={crew} />
-      <CrewFooter token={token} />
+      <CrewFooter token={token} crew={crew} viewer={viewer} />
     </div>
   )
 }
 
-function CurrentGame({ token, game }: { token: string; game: GameView }) {
+function CurrentGame({ token, game, members, viewer }: { token: string; game: GameView; members: MemberRecord[]; viewer: MemberRecord }) {
+  const roster = <Roster token={token} game={game} members={members} />
   return (
     <section>
       <GameHeader game={game} />
@@ -90,19 +94,32 @@ function CurrentGame({ token, game }: { token: string; game: GameView }) {
         <RevealedLists game={game} />
       ) : game.viewerSealed === null ? (
         <>
-          <p className="mb-4 text-sm text-faint">You are sitting this one out.</p>
-          <Roster token={token} game={game} />
+          <SittingOut token={token} viewer={viewer} />
+          {roster}
         </>
       ) : game.viewerSealed ? (
-        <Sealed token={token} game={game} />
+        <Sealed token={token} game={game} roster={roster} />
       ) : (
-        <SealForm token={token} game={game} />
+        <SealForm token={token} roster={roster} />
       )}
     </section>
   )
 }
 
-function SealForm({ token, game }: { token: string; game: GameView }) {
+function SittingOut({ token, viewer }: { token: string; viewer: MemberRecord }) {
+  const join = useCrewMutation(token, (memberId: string) => joinGame({ data: { token, memberId } }))
+  return (
+    <div className="mb-6">
+      <p className="mb-3 text-sm text-faint">You are not in this game.</p>
+      <button type="button" className="button-primary" disabled={join.isPending} onClick={() => join.mutate(viewer.id)}>
+        {join.isPending ? 'Joining…' : "I'm playing too"}
+      </button>
+      {join.isError && <p className="mt-3 text-sm text-seal">{errorMessage(join.error)}</p>}
+    </div>
+  )
+}
+
+function SealForm({ token, roster }: { token: string; roster: ReactNode }) {
   const [draft, setDraft] = useState('')
   const seal = useCrewMutation(token, (list: string) => sealList({ data: { token, list } }))
 
@@ -127,16 +144,16 @@ function SealForm({ token, game }: { token: string; game: GameView }) {
       </button>
       {seal.isError && <p className="text-sm text-seal">{errorMessage(seal.error)}</p>}
       <p className="text-sm text-faint">Hidden from everyone until the last list is in.</p>
-      <Roster token={token} game={game} />
+      {roster}
     </form>
   )
 }
 
-function Sealed({ token, game }: { token: string; game: GameView }) {
+function Sealed({ token, game, roster }: { token: string; game: GameView; roster: ReactNode }) {
   const [replacing, setReplacing] = useState(false)
   const mine = game.entries.find((entry) => entry.isViewer)
   if (!mine) return null
-  if (replacing) return <SealForm token={token} game={game} />
+  if (replacing) return <SealForm token={token} roster={roster} />
 
   return (
     <section className="space-y-4">
@@ -148,13 +165,16 @@ function Sealed({ token, game }: { token: string; game: GameView }) {
         Replace
       </button>
       <p className="text-sm text-faint">You can replace it until the last list is in.</p>
-      <Roster token={token} game={game} />
+      {roster}
     </section>
   )
 }
 
-function Roster({ token, game }: { token: string; game: GameView }) {
+function Roster({ token, game, members }: { token: string; game: GameView; members: MemberRecord[] }) {
   const drop = useCrewMutation(token, (memberId: string) => dropPlayer({ data: { token, memberId } }))
+  const join = useCrewMutation(token, (memberId: string) => joinGame({ data: { token, memberId } }))
+  const missing = members.filter((member) => !game.entries.some((entry) => entry.memberId === member.id))
+
   return (
     <section>
       <h3 className="label">Who is in</h3>
@@ -169,7 +189,18 @@ function Roster({ token, game }: { token: string; game: GameView }) {
           />
         ))}
       </ul>
+      {missing.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="text-sm text-faint">Not playing:</span>
+          {missing.map((member) => (
+            <button key={member.id} type="button" className="button-quiet" disabled={join.isPending} onClick={() => join.mutate(member.id)}>
+              Add {member.name}
+            </button>
+          ))}
+        </div>
+      )}
       {drop.isError && <p className="mt-3 text-sm text-seal">{errorMessage(drop.error)}</p>}
+      {join.isError && <p className="mt-3 text-sm text-seal">{errorMessage(join.error)}</p>}
     </section>
   )
 }
@@ -254,17 +285,38 @@ function History({ token, crew }: { token: string; crew: CrewView }) {
   )
 }
 
-function CrewFooter({ token }: { token: string }) {
+function CrewFooter({ token, crew, viewer }: { token: string; crew: CrewView; viewer: MemberRecord }) {
   const origin = useOrigin()
   const [name, setName] = useState('')
   const add = useCrewMutation(token, (playerName: string) => addMember({ data: { token, name: playerName } }))
+  const remove = useCrewMutation(token, (memberId: string) => removeMember({ data: { token, memberId } }))
+  const canRemove = canRemoveMember(crew.members.length)
 
   return (
     <section className="space-y-4 border-t border-edge pt-6">
-      <div className="flex flex-wrap items-center gap-3">
-        <CopyButton value={`${origin}/c/${token}`} label="Copy crew link" description="Copy the link to this crew" />
-        <p className="text-sm text-faint">Send it once. Everyone bookmarks it.</p>
-      </div>
+      <h2 className="label">The crew</h2>
+      <ul className="divide-y divide-edge border-y border-edge">
+        {crew.members.map((member) => (
+          <li key={member.id} className="flex items-center gap-3 py-3">
+            <span className="min-w-0 flex-1 truncate">
+              {member.name}
+              {member.id === viewer.id && <span className="ml-2 text-xs tracking-[0.14em] text-faint uppercase">you</span>}
+            </span>
+            {canRemove && (
+              <button
+                type="button"
+                className="button-quiet"
+                disabled={remove.isPending}
+                onClick={() => {
+                  if (confirm(`Remove ${member.name} from the crew? Their lists in finished games stay.`)) remove.mutate(member.id)
+                }}
+              >
+                Remove
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
       <form
         className="flex flex-wrap gap-2"
         onSubmit={(event) => {
@@ -286,6 +338,11 @@ function CrewFooter({ token }: { token: string }) {
         </button>
       </form>
       {add.isError && <p className="text-sm text-seal">{errorMessage(add.error)}</p>}
+      {remove.isError && <p className="text-sm text-seal">{errorMessage(remove.error)}</p>}
+      <div className="flex flex-wrap items-center gap-3 pt-2">
+        <CopyButton value={`${origin}/c/${token}`} label="Copy crew link" description="Copy the link to this crew" />
+        <p className="text-sm text-faint">Send it once. Everyone bookmarks it.</p>
+      </div>
     </section>
   )
 }

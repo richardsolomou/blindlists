@@ -4,7 +4,7 @@ import { crew, game } from '../server/fns'
 
 // While a game is collecting the page polls, so everyone sees the reveal land
 // without refreshing; a revealed game never changes again.
-const collecting = (query: { state: { data?: CrewView } }) => (query.state.data?.currentGame?.status === 'collecting' ? 5000 : false)
+const collecting = (query: { state: { data?: CrewView | null } }) => (query.state.data?.currentGame?.status === 'collecting' ? 5000 : false)
 
 export const crewQuery = (token: string) =>
   queryOptions({

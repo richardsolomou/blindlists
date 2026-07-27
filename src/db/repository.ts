@@ -17,6 +17,8 @@ type Crew = { crew: CrewRecord; members: MemberRecord[] }
 type SealResult = 'sealed' | 'locked' | 'unknown'
 type DropResult = 'dropped' | 'locked' | 'sealed' | 'too-few' | 'unknown'
 type AddMemberResult = 'added' | 'full'
+type JoinResult = 'joined' | 'locked' | 'already-in' | 'unknown'
+type RemoveMemberResult = 'removed' | 'too-few' | 'unknown'
 
 export class Repository {
   constructor(private readonly database: BlindListsDatabase) {}
@@ -39,7 +41,7 @@ export class Repository {
     return this.database.transaction((tx) => {
       const roster = this.membersOf(input.crewId, tx)
       if (roster.length >= MEMBERS_MAX) return 'full'
-      const seat = (roster.at(-1)?.seat ?? 0) + 1
+      const seat = this.highestSeat(input.crewId, tx) + 1
       tx.insert(members).values({ id: input.id, crewId: input.crewId, name: input.name, seat }).run()
       return 'added'
     })
@@ -125,6 +127,48 @@ export class Repository {
     })
   }
 
+  /** Puts a crew member into the game that is already collecting. */
+  joinGame(input: { gameId: string; memberId: string; now: number }): JoinResult {
+    return this.database.transaction((tx) => {
+      const game = tx.select().from(games).where(eq(games.id, input.gameId)).get()
+      if (!game) return 'unknown'
+      if (game.revealedAt !== null) return 'locked'
+      const existing = tx
+        .select()
+        .from(entries)
+        .where(and(eq(entries.gameId, input.gameId), eq(entries.memberId, input.memberId)))
+        .get()
+      if (existing) return 'already-in'
+      tx.insert(entries).values({ gameId: input.gameId, memberId: input.memberId, list: null }).run()
+      return 'joined'
+    })
+  }
+
+  /**
+   * Marks someone as having left the crew. Their entries in games that already
+   * revealed stay exactly as they were; only a game still collecting loses them.
+   */
+  removeMember(input: { crewId: string; memberId: string; now: number }): RemoveMemberResult {
+    return this.database.transaction((tx) => {
+      const roster = this.membersOf(input.crewId, tx)
+      if (!roster.some((member) => member.id === input.memberId)) return 'unknown'
+      if (roster.length <= 2) return 'too-few'
+      const collecting = tx
+        .select()
+        .from(games)
+        .where(and(eq(games.crewId, input.crewId), isNull(games.revealedAt)))
+        .get()
+      if (collecting) {
+        tx.delete(entries)
+          .where(and(eq(entries.gameId, collecting.id), eq(entries.memberId, input.memberId)))
+          .run()
+      }
+      tx.update(members).set({ removedAt: input.now }).where(eq(members.id, input.memberId)).run()
+      if (collecting) this.revealIfComplete(tx, collecting.id, input.now)
+      return 'removed'
+    })
+  }
+
   /** Clears a no-show, so one player never sealing cannot hold the reveal hostage. */
   dropEntry(input: { gameId: string; memberId: string; now: number }): DropResult {
     return this.database.transaction((tx) => {
@@ -168,9 +212,20 @@ export class Repository {
     return tx
       .select({ id: members.id, name: members.name, seat: members.seat })
       .from(members)
-      .where(eq(members.crewId, crewId))
+      .where(and(eq(members.crewId, crewId), isNull(members.removedAt)))
       .orderBy(asc(members.seat))
       .all()
+  }
+
+  /** Seats are never reused, so a new member always sits after everyone who has ever been in the crew. */
+  private highestSeat(crewId: string, tx: Transaction | BlindListsDatabase = this.database) {
+    return (
+      tx
+        .select({ seat: sql<number>`max(${members.seat})` })
+        .from(members)
+        .where(eq(members.crewId, crewId))
+        .get()?.seat ?? 0
+    )
   }
 }
 

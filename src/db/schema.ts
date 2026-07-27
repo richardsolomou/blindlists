@@ -21,6 +21,12 @@ export const members = sqliteTable(
       .references(() => crews.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     seat: integer('seat').notNull(),
+    /**
+     * Set when someone leaves the crew. The row stays so their lists in games
+     * that already revealed keep their name — deleting it would cascade those
+     * entries away and quietly rewrite history.
+     */
+    removedAt: integer('removed_at'),
   },
   (table) => [index('members_crew_id_index').on(table.crewId)],
 )

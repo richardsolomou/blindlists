@@ -175,6 +175,90 @@ describe('dropPlayer', () => {
   })
 })
 
+describe('joinGame', () => {
+  it('lets someone who was left out join the running game', () => {
+    const { token, id, members } = crewWithGame()
+    for (const member of members) service.sealList(token, member.id, `${member.name} list`)
+    service.startGame(token, id('Alex'), [id('Alex'), id('Rich')])
+    const view = service.joinGame(token, id('Dan'), id('Dan'))
+    expect(view.currentGame?.entries.map((entry) => entry.name)).toEqual(['Alex', 'Rich', 'Dan'])
+  })
+
+  it('lets one player add another to the running game', () => {
+    const { token, id, members } = crewWithGame()
+    for (const member of members) service.sealList(token, member.id, `${member.name} list`)
+    service.startGame(token, id('Alex'), [id('Alex'), id('Rich')])
+    const view = service.joinGame(token, id('Alex'), id('Dan'))
+    expect(view.currentGame?.entries.some((entry) => entry.name === 'Dan')).toBe(true)
+  })
+
+  it('leaves the joiner needing to seal a list', () => {
+    const { token, id, members } = crewWithGame()
+    for (const member of members) service.sealList(token, member.id, `${member.name} list`)
+    service.startGame(token, id('Alex'), [id('Alex'), id('Rich')])
+    service.joinGame(token, id('Dan'), id('Dan'))
+    expect(service.crewView(token, id('Dan')).currentGame?.viewerSealed).toBe(false)
+  })
+
+  it('refuses someone already in the game', () => {
+    const { token, id } = crewWithGame()
+    expect(rejection(() => service.joinGame(token, id('Alex'), id('Alex')))).toBe(409)
+  })
+
+  it('refuses to join a revealed game', () => {
+    const { token, id, members } = crewWithGame()
+    service.dropPlayer(token, id('Alex'), id('Dan'))
+    for (const member of members.filter((m) => m.name !== 'Dan')) service.sealList(token, member.id, `${member.name} list`)
+    expect(rejection(() => service.joinGame(token, id('Alex'), id('Dan')))).toBe(409)
+  })
+})
+
+describe('removeMember', () => {
+  it('takes them off the crew roster', () => {
+    const { token, id } = crewWithGame()
+    const view = service.removeMember(token, id('Alex'), id('Dan'))
+    expect(view.members.map((member) => member.name)).toEqual(['Alex', 'Rich'])
+  })
+
+  it('stops them being claimable as an identity', () => {
+    const { token, id } = crewWithGame()
+    service.removeMember(token, id('Alex'), id('Dan'))
+    expect(rejection(() => service.claimMember(token, id('Dan')))).toBe(404)
+  })
+
+  it('drops them out of the game that is still collecting', () => {
+    const { token, id } = crewWithGame()
+    const view = service.removeMember(token, id('Alex'), id('Dan'))
+    expect(view.currentGame?.entries.map((entry) => entry.name)).toEqual(['Alex', 'Rich'])
+  })
+
+  it('reveals the game when they were the only one outstanding', () => {
+    const { token, id } = crewWithGame()
+    service.sealList(token, id('Alex'), 'Alex list')
+    service.sealList(token, id('Rich'), 'Rich list')
+    expect(service.removeMember(token, id('Alex'), id('Dan')).currentGame?.status).toBe('revealed')
+  })
+
+  it('leaves their list in a game that already revealed', () => {
+    const { token, id, members } = crewWithGame()
+    for (const member of members) service.sealList(token, member.id, `${member.name} list`)
+    service.removeMember(token, id('Alex'), id('Dan'))
+    const revealed = service.crewView(token, id('Alex')).currentGame
+    expect(revealed?.entries.find((entry) => entry.name === 'Dan')?.list).toBe('Dan list')
+  })
+
+  it('refuses to leave the crew with fewer than two players', () => {
+    const { token, id } = crewWithGame()
+    service.removeMember(token, id('Alex'), id('Dan'))
+    expect(rejection(() => service.removeMember(token, id('Alex'), id('Rich')))).toBe(409)
+  })
+
+  it('refuses a visitor who has not tapped a name', () => {
+    const { token, id } = crewWithGame()
+    expect(rejection(() => service.removeMember(token, undefined, id('Dan')))).toBe(403)
+  })
+})
+
 describe('addMember', () => {
   it('adds a player to the crew for future games', () => {
     const { token, id } = crewWithGame()
@@ -186,6 +270,13 @@ describe('addMember', () => {
     const { token, id } = crewWithGame()
     const view = service.addMember(token, id('Alex'), 'Sam')
     expect(view.currentGame?.entries.map((entry) => entry.name)).toEqual(['Alex', 'Rich', 'Dan'])
+  })
+
+  it('seats a new member after everyone who has ever been in the crew', () => {
+    const { token, id } = crewWithGame()
+    service.removeMember(token, id('Alex'), id('Dan'))
+    const view = service.addMember(token, id('Alex'), 'Sam')
+    expect(view.members.map((member) => member.name)).toEqual(['Alex', 'Rich', 'Sam'])
   })
 })
 

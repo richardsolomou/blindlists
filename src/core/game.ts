@@ -23,6 +23,9 @@ export type MemberRecord = {
   seat: number
 }
 
+/** A crew always keeps enough people to field a game. */
+export const canRemoveMember = (activeMembers: number) => activeMembers > MEMBERS_MIN
+
 export type GameRecord = {
   id: string
   number: number
@@ -60,6 +63,7 @@ export type GameView = {
 
 export type CrewView = {
   name: string
+  /** Members who have not left the crew, in seat order. */
   members: MemberRecord[]
   /** Null until the visitor has tapped their name on this device. */
   viewer: MemberRecord | null

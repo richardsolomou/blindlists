@@ -7,12 +7,22 @@ import {
   addMemberSchema,
   claimMemberSchema,
   createCrewSchema,
-  dropPlayerSchema,
   gameSchema,
+  memberSchema,
   sealListSchema,
   startGameSchema,
   tokenSchema,
 } from './schemas'
+
+/** Reads answer null when the link is wrong or expired, so the route can render a real 404. */
+function orNull<T>(work: () => T) {
+  try {
+    return work()
+  } catch (error) {
+    if (error instanceof Response && error.status === 404) return null
+    throw error
+  }
+}
 
 export const createCrew = createServerFn({ method: 'POST' })
   .validator(createCrewSchema)
@@ -25,11 +35,11 @@ export const createCrew = createServerFn({ method: 'POST' })
 
 export const crew = createServerFn({ method: 'GET' })
   .validator(tokenSchema)
-  .handler(({ data }) => rpc(() => app().service.crewView(data.token, readMember(data.token))))
+  .handler(({ data }) => rpc(() => orNull(() => app().service.crewView(data.token, readMember(data.token)))))
 
 export const game = createServerFn({ method: 'GET' })
   .validator(gameSchema)
-  .handler(({ data }) => rpc(() => app().service.gameView(data.token, data.gameId, readMember(data.token))))
+  .handler(({ data }) => rpc(() => orNull(() => app().service.gameView(data.token, data.gameId, readMember(data.token)))))
 
 export const claimMember = createServerFn({ method: 'POST' })
   .validator(claimMemberSchema)
@@ -70,8 +80,26 @@ export const sealList = createServerFn({ method: 'POST' })
     }),
   )
 
+export const joinGame = createServerFn({ method: 'POST' })
+  .validator(memberSchema)
+  .handler(({ data }) =>
+    rpc(() => {
+      requireMutationOrigin()
+      return app().service.joinGame(data.token, readMember(data.token), data.memberId)
+    }),
+  )
+
+export const removeMember = createServerFn({ method: 'POST' })
+  .validator(memberSchema)
+  .handler(({ data }) =>
+    rpc(() => {
+      requireMutationOrigin()
+      return app().service.removeMember(data.token, readMember(data.token), data.memberId)
+    }),
+  )
+
 export const dropPlayer = createServerFn({ method: 'POST' })
-  .validator(dropPlayerSchema)
+  .validator(memberSchema)
   .handler(({ data }) =>
     rpc(() => {
       requireMutationOrigin()
