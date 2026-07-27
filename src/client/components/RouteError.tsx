@@ -8,7 +8,7 @@ export function RouteError({ error }: { error: unknown }) {
       <p className="mt-2 text-faint">{errorMessage(error)}</p>
       <p className="mt-6">
         <Link to="/" className="text-brass underline">
-          Set up a crew
+          Set up a group
         </Link>
       </p>
     </main>

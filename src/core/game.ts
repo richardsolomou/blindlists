@@ -1,21 +1,21 @@
 export const PLAYERS_MIN = 2
 export const MEMBERS_MAX = 16
-export const CREW_NAME_MAX_LENGTH = 60
+export const GROUP_NAME_MAX_LENGTH = 60
 export const NAME_MAX_LENGTH = 40
 export const LIST_MAX_LENGTH = 10_000
 export const PASSWORD_MIN_LENGTH = 10
 
 export type GameStatus = 'collecting' | 'revealed'
 
-export type CrewRecord = {
+export type GroupRecord = {
   id: string
   name: string
   token: string
   createdAt: number
 }
 
-/** Someone in the crew. The name is their account name. */
-export type CrewMember = {
+/** Someone in the group. The name is their account name. */
+export type GroupMember = {
   userId: string
   name: string
 }
@@ -54,30 +54,30 @@ export type GameView = {
   viewerSealed: boolean | null
 }
 
-export type CrewView = {
+export type GroupView = {
   name: string
-  members: CrewMember[]
-  /** False when the viewer holds the link but has not joined the crew yet. */
+  members: GroupMember[]
+  /** False when the viewer holds the link but has not joined the group yet. */
   isMember: boolean
   /**
    * The game still collecting, or else the one that revealed most recently — so
-   * a reveal appears on the page the crew is already looking at instead of
+   * a reveal appears on the page the group is already looking at instead of
    * vanishing into history.
    */
   currentGame: GameView | null
   pastGames: { id: string; number: number }[]
-  /** False while a game is still collecting: a crew runs one game at a time. */
+  /** False while a game is still collecting: a group runs one game at a time. */
   canStartGame: boolean
 }
 
-export type CrewSummary = {
+export type GroupSummary = {
   name: string
   token: string
   /** True when a game is collecting and the viewer still owes it a list. */
   needsList: boolean
 }
 
-/** A crew always keeps enough people to field a game. */
+/** A group always keeps enough people to field a game. */
 export const canRemoveMember = (members: number) => members > PLAYERS_MIN
 
 export function allSealed(entries: readonly EntryRecord[]) {

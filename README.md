@@ -6,34 +6,34 @@ Paste the text your list builder already exports — the Warhammer 40,000 app, N
 
 ## How it works
 
-Everyone makes an account — email and password, or one tap with Google or Discord where the instance has them configured. You set up a **crew** — its name — and get a single link. Send that to the group once; they sign in and join, and every game after that is waiting at the same place for all of you.
+Everyone makes an account — email and password, or one tap with Google or Discord where the instance has them configured. You set up a **group** — its name — and get a single link. Send that to the group once; they sign in and join, and every game after that is waiting at the same place for all of you.
 
-1. Sign in. Your name is what the rest of the crew sees, and your lists follow the account onto any device.
-2. Anyone in the crew starts a game and picks who is playing tonight.
+1. Sign in. Your name is what the rest of the group sees, and your lists follow the account onto any device.
+2. Anyone in the group starts a game and picks who is playing tonight.
 3. Each player pastes their army list and seals it. They can replace it as long as anyone is still outstanding, and nobody can see another list while the game is collecting.
 4. When the last list is sealed, every list is revealed together and permanently locked.
 
-Everybody opens the same link for every future game — no new links, ever. A crew runs one game at a time, and finished games stay on the page as history. Your home page lists your crews and flags any that are waiting on a list from you.
+Everybody opens the same link for every future game — no new links, ever. A group runs one game at a time, and finished games stay on the page as history. Your home page lists your groups and flags any that are waiting on a list from you.
 
 Two emails per game, if the instance can send them and you have not turned them off: one when a game starts and your list is due, one when the last list lands. Nothing else.
 
-While a game is still collecting you can change who is in it: join a game you were left out of, add anyone from the crew, or drop a no-show — which reveals the game if everyone else is already in. Someone who has sealed cannot be dropped, and a revealed game can never be edited.
+While a game is still collecting you can change who is in it: join a game you were left out of, add anyone from the group, or drop a no-show — which reveals the game if everyone else is already in. Someone who has sealed cannot be dropped, and a revealed game can never be edited.
 
-Players come and go from the crew too. Anyone with the link can join; anyone in the crew can remove a member or leave themselves. Removal takes them off the roster and out of a game still collecting, but leaves their lists in games that already revealed: history stays true. A crew always keeps at least two players.
+Players come and go from the group too. Anyone with the link can join; anyone in the group can remove a member or leave themselves. Removal takes them off the roster and out of a game still collecting, but leaves their lists in games that already revealed: history stays true. A group always keeps at least two players.
 
 There are no accounts, no settings, and nothing to administer.
 
 ## Storage
 
-An account is a name, an email and a password hash. A crew is its name, its link token and a row per member. A game is a number, its players, and their list text.
+An account is a name, an email and a password hash. A group is its name, its link token and a row per member. A game is a number, its players, and their list text.
 
-It is all text, so it all stays. A season of games for a crew of six is a few hundred KB, which is not worth expiring, and a list you sealed two years ago is still there to argue about. A game is a number, its players, and their list text: a few KB. Nothing else is kept — no analytics, no logs of who looked at what. List text is stored exactly as it will be shown, normalized to LF line endings with trailing whitespace and surrounding blank lines removed.
+It is all text, so it all stays. A season of games for a group of six is a few hundred KB, which is not worth expiring, and a list you sealed two years ago is still there to argue about. A game is a number, its players, and their list text: a few KB. Nothing else is kept — no analytics, no logs of who looked at what. List text is stored exactly as it will be shown, normalized to LF line endings with trailing whitespace and surrounding blank lines removed.
 
 ## Trust model
 
 Accounts are real: [better-auth](https://better-auth.com) with email and password plus optional Google and Discord, sessions in an httpOnly cookie, and rate limits on sign-in, sign-up and password reset. Signing in with a provider that carries the same address links to the existing account rather than making a second one. You are only ever one player, and only your own account can seal your list.
 
-The crew link is an invitation, not a credential. Anyone holding it can see the crew's name and who is in it, and can join — so keep it to the group. Joining is all it grants: a link holder who has not joined sees no game, no roster status and no lists, and cannot open a game by its id. While a game is collecting the server hands nobody another player's list, and once revealed a list can never be edited. What it cannot guarantee is a hostile operator — lists sit in plain text in the server's SQLite database, so whoever runs the deployment could read one before the reveal. That is fine among friends running their own instance; an escrow that survives a hostile operator needs a client-side commit–reveal scheme, which this deliberately is not.
+The group link is an invitation, not a credential. Anyone holding it can see the group's name and who is in it, and can join — so keep it to the group. Joining is all it grants: a link holder who has not joined sees no game, no roster status and no lists, and cannot open a game by its id. While a game is collecting the server hands nobody another player's list, and once revealed a list can never be edited. What it cannot guarantee is a hostile operator — lists sit in plain text in the server's SQLite database, so whoever runs the deployment could read one before the reveal. That is fine among friends running their own instance; an escrow that survives a hostile operator needs a client-side commit–reveal scheme, which this deliberately is not.
 
 ## Running it
 
@@ -68,7 +68,8 @@ Everything else in `.env.example` is optional and degrades honestly. With no SMT
 - `src/server/auth.ts` — the better-auth instance, its providers, and the secret it keeps beside the database.
 - `src/adapters/email.ts`, `src/server/emails.ts`, `src/server/notify.ts` — SMTP delivery, the four messages, and what triggers them.
 - `src/server/session.ts` — reads the signed-in user for server functions.
-- `src/client`, `src/routes` — query definitions, four components, and four pages: sign in, your crews, the crew page everything happens on, and a past game.
+- `src/components/ui` — shadcn components (Base UI), generated by the CLI.
+- `src/client`, `src/routes` — query definitions, a few components, and the pages: sign in, password reset, your groups, the group page everything happens on, a finished game, and your account.
 
 ## License
 

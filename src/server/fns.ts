@@ -4,7 +4,7 @@ import { app } from './app'
 import { configuredProviders } from './auth'
 import { requireMutationOrigin } from './mutationOrigin'
 import { rpc } from './rpc'
-import { createCrewSchema, gameSchema, memberSchema, sealListSchema, startGameSchema, tokenSchema } from './schemas'
+import { createGroupSchema, gameSchema, memberSchema, sealListSchema, startGameSchema, tokenSchema } from './schemas'
 import { currentUser, requireUser } from './session'
 
 /** Reads answer null for a link that points at nothing, so the route can render a real 404. */
@@ -41,31 +41,31 @@ export const setEmailPreference = createServerFn({ method: 'POST' })
     }),
   )
 
-export const myCrews = createServerFn({ method: 'GET' }).handler(() =>
+export const myGroups = createServerFn({ method: 'GET' }).handler(() =>
   rpc(async () => {
     const viewer = await currentUser()
-    return viewer ? app().service.myCrews(viewer.id) : null
+    return viewer ? app().service.myGroups(viewer.id) : null
   }),
 )
 
-export const createCrew = createServerFn({ method: 'POST' })
-  .validator(createCrewSchema)
+export const createGroup = createServerFn({ method: 'POST' })
+  .validator(createGroupSchema)
   .handler(({ data }) =>
     rpc(async () => {
       requireMutationOrigin()
       const viewer = await requireUser()
-      return app().service.createCrew(viewer.id, data.name)
+      return app().service.createGroup(viewer.id, data.name)
     }),
   )
 
-export const crew = createServerFn({ method: 'GET' })
+export const group = createServerFn({ method: 'GET' })
   .validator(tokenSchema)
   .handler(({ data }) =>
     rpc(async () => {
       const viewer = await currentUser()
       // The page shows a sign-in prompt rather than 401ing someone who followed a link.
       if (!viewer) return 'signed-out' as const
-      return orNull(() => app().service.crewView(data.token, viewer.id))
+      return orNull(() => app().service.groupView(data.token, viewer.id))
     }),
   )
 
@@ -78,13 +78,13 @@ export const game = createServerFn({ method: 'GET' })
     }),
   )
 
-export const joinCrew = createServerFn({ method: 'POST' })
+export const joinGroup = createServerFn({ method: 'POST' })
   .validator(tokenSchema)
   .handler(({ data }) =>
     rpc(async () => {
       requireMutationOrigin()
       const viewer = await requireUser()
-      return app().service.joinCrew(data.token, viewer.id)
+      return app().service.joinGroup(data.token, viewer.id)
     }),
   )
 

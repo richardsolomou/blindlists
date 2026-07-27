@@ -17,14 +17,14 @@ export const resetPasswordEmail = (to: string, url: string): Email => ({
   text: `Set a new password here:\n\n${url}\n\nThe link stops working in an hour. If you did not ask for this, ignore it.`,
 })
 
-export const gameStartedEmail = (to: string, crew: string, gameNumber: number, url: string): Email => ({
+export const gameStartedEmail = (to: string, group: string, gameNumber: number, url: string): Email => ({
   to,
-  subject: `${crew}: your list is due for game ${gameNumber}`,
-  text: `A game has started in ${crew} and you are in it.\n\nSeal your list here:\n\n${url}\n\nNobody sees it until the last list is in.`,
+  subject: `${group}: your list is due for game ${gameNumber}`,
+  text: `A game has started in ${group} and you are in it.\n\nSeal your list here:\n\n${url}\n\nNobody sees it until the last list is in.`,
 })
 
-export const gameRevealedEmail = (to: string, crew: string, gameNumber: number, url: string): Email => ({
+export const gameRevealedEmail = (to: string, group: string, gameNumber: number, url: string): Email => ({
   to,
-  subject: `${crew}: every list is in for game ${gameNumber}`,
+  subject: `${group}: every list is in for game ${gameNumber}`,
   text: `The last list landed, so game ${gameNumber} is revealed and locked.\n\nRead them here:\n\n${url}`,
 })

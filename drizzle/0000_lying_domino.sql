@@ -16,24 +16,12 @@ CREATE TABLE `account` (
 );
 --> statement-breakpoint
 CREATE INDEX `account_userId_idx` ON `account` (`userId`);--> statement-breakpoint
-CREATE TABLE `crew_members` (
-	`crew_id` text NOT NULL,
-	`user_id` text NOT NULL,
-	`joined_at` integer NOT NULL,
-	PRIMARY KEY(`crew_id`, `user_id`),
-	FOREIGN KEY (`crew_id`) REFERENCES `crews`(`id`) ON UPDATE no action ON DELETE cascade,
+CREATE TABLE `email_preferences` (
+	`user_id` text PRIMARY KEY NOT NULL,
+	`game_emails` integer NOT NULL,
 	FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE INDEX `crew_members_user_id_index` ON `crew_members` (`user_id`);--> statement-breakpoint
-CREATE TABLE `crews` (
-	`id` text PRIMARY KEY NOT NULL,
-	`name` text NOT NULL,
-	`token` text NOT NULL,
-	`created_at` integer NOT NULL
-);
---> statement-breakpoint
-CREATE UNIQUE INDEX `crews_token_unique` ON `crews` (`token`);--> statement-breakpoint
 CREATE TABLE `entries` (
 	`game_id` text NOT NULL,
 	`user_id` text NOT NULL,
@@ -45,15 +33,32 @@ CREATE TABLE `entries` (
 --> statement-breakpoint
 CREATE TABLE `games` (
 	`id` text PRIMARY KEY NOT NULL,
-	`crew_id` text NOT NULL,
+	`group_id` text NOT NULL,
 	`number` integer NOT NULL,
 	`created_at` integer NOT NULL,
 	`revealed_at` integer,
-	FOREIGN KEY (`crew_id`) REFERENCES `crews`(`id`) ON UPDATE no action ON DELETE cascade
+	FOREIGN KEY (`group_id`) REFERENCES `groups`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE INDEX `games_crew_id_index` ON `games` (`crew_id`);--> statement-breakpoint
-CREATE INDEX `games_created_at_index` ON `games` (`created_at`);--> statement-breakpoint
+CREATE INDEX `games_group_id_index` ON `games` (`group_id`);--> statement-breakpoint
+CREATE TABLE `group_members` (
+	`group_id` text NOT NULL,
+	`user_id` text NOT NULL,
+	`joined_at` integer NOT NULL,
+	PRIMARY KEY(`group_id`, `user_id`),
+	FOREIGN KEY (`group_id`) REFERENCES `groups`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `group_members_user_id_index` ON `group_members` (`user_id`);--> statement-breakpoint
+CREATE TABLE `groups` (
+	`id` text PRIMARY KEY NOT NULL,
+	`name` text NOT NULL,
+	`token` text NOT NULL,
+	`created_at` integer NOT NULL
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `groups_token_unique` ON `groups` (`token`);--> statement-breakpoint
 CREATE TABLE `rateLimit` (
 	`id` text PRIMARY KEY NOT NULL,
 	`key` text NOT NULL,

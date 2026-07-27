@@ -1,12 +1,12 @@
 import { and, asc, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm'
 import { MEMBERS_MAX, allSealed } from '../core/game'
-import type { CrewMember, CrewRecord, EntryRecord, GameRecord } from '../core/game'
+import type { GroupMember, GroupRecord, EntryRecord, GameRecord } from '../core/game'
 import type { SealedListsDatabase } from './connection'
-import { crewMembers, crews, emailPreferences, entries, games, user } from './schema'
+import { groupMembers, groups, emailPreferences, entries, games, user } from './schema'
 
-type Crew = { crew: CrewRecord; members: CrewMember[] }
+type Group = { group: GroupRecord; members: GroupMember[] }
 
-type JoinCrewResult = 'joined' | 'already-in' | 'full'
+type JoinGroupResult = 'joined' | 'already-in' | 'full'
 type SealResult = 'sealed' | 'locked' | 'unknown'
 type DropResult = 'dropped' | 'locked' | 'sealed' | 'too-few' | 'unknown'
 type JoinGameResult = 'joined' | 'locked' | 'already-in' | 'unknown'
@@ -15,90 +15,90 @@ type RemoveMemberResult = 'removed' | 'unknown' | 'too-few'
 export class Repository {
   constructor(private readonly database: SealedListsDatabase) {}
 
-  createCrew(crew: { id: string; name: string; token: string; ownerId: string; now: number }) {
+  createGroup(group: { id: string; name: string; token: string; ownerId: string; now: number }) {
     this.database.transaction((tx) => {
-      tx.insert(crews).values({ id: crew.id, name: crew.name, token: crew.token, createdAt: crew.now }).run()
-      tx.insert(crewMembers).values({ crewId: crew.id, userId: crew.ownerId, joinedAt: crew.now }).run()
+      tx.insert(groups).values({ id: group.id, name: group.name, token: group.token, createdAt: group.now }).run()
+      tx.insert(groupMembers).values({ groupId: group.id, userId: group.ownerId, joinedAt: group.now }).run()
     })
   }
 
-  crewByToken(token: string): Crew | undefined {
-    const crew = this.database.select().from(crews).where(eq(crews.token, token)).get()
-    return crew ? { crew, members: this.membersOf(crew.id) } : undefined
+  groupByToken(token: string): Group | undefined {
+    const group = this.database.select().from(groups).where(eq(groups.token, token)).get()
+    return group ? { group, members: this.membersOf(group.id) } : undefined
   }
 
-  /** Every crew the user belongs to, newest first. */
-  crewsOf(userId: string) {
+  /** Every group the user belongs to, newest first. */
+  groupsOf(userId: string) {
     return this.database
-      .select({ id: crews.id, name: crews.name, token: crews.token })
-      .from(crewMembers)
-      .innerJoin(crews, eq(crews.id, crewMembers.crewId))
-      .where(eq(crewMembers.userId, userId))
-      .orderBy(desc(crews.createdAt))
+      .select({ id: groups.id, name: groups.name, token: groups.token })
+      .from(groupMembers)
+      .innerJoin(groups, eq(groups.id, groupMembers.groupId))
+      .where(eq(groupMembers.userId, userId))
+      .orderBy(desc(groups.createdAt))
       .all()
   }
 
-  joinCrew(input: { crewId: string; userId: string; now: number }): JoinCrewResult {
+  joinGroup(input: { groupId: string; userId: string; now: number }): JoinGroupResult {
     return this.database.transaction((tx) => {
-      const roster = this.membersOf(input.crewId, tx)
+      const roster = this.membersOf(input.groupId, tx)
       if (roster.some((member) => member.userId === input.userId)) return 'already-in'
       if (roster.length >= MEMBERS_MAX) return 'full'
-      tx.insert(crewMembers).values({ crewId: input.crewId, userId: input.userId, joinedAt: input.now }).run()
+      tx.insert(groupMembers).values({ groupId: input.groupId, userId: input.userId, joinedAt: input.now }).run()
       return 'joined'
     })
   }
 
   /**
-   * Takes someone out of the crew, and out of a game still collecting. Entries
+   * Takes someone out of the group, and out of a game still collecting. Entries
    * are keyed to the account rather than to membership, so their lists in games
    * that already revealed stay exactly as they were.
    */
-  removeMember(input: { crewId: string; userId: string; now: number }): RemoveMemberResult {
+  removeMember(input: { groupId: string; userId: string; now: number }): RemoveMemberResult {
     return this.database.transaction((tx) => {
-      const roster = this.membersOf(input.crewId, tx)
+      const roster = this.membersOf(input.groupId, tx)
       if (!roster.some((member) => member.userId === input.userId)) return 'unknown'
       if (roster.length <= 2) return 'too-few'
       const collecting = tx
         .select()
         .from(games)
-        .where(and(eq(games.crewId, input.crewId), isNull(games.revealedAt)))
+        .where(and(eq(games.groupId, input.groupId), isNull(games.revealedAt)))
         .get()
       if (collecting) {
         tx.delete(entries)
           .where(and(eq(entries.gameId, collecting.id), eq(entries.userId, input.userId)))
           .run()
       }
-      tx.delete(crewMembers)
-        .where(and(eq(crewMembers.crewId, input.crewId), eq(crewMembers.userId, input.userId)))
+      tx.delete(groupMembers)
+        .where(and(eq(groupMembers.groupId, input.groupId), eq(groupMembers.userId, input.userId)))
         .run()
       if (collecting) this.revealIfComplete(tx, collecting.id, input.now)
       return 'removed'
     })
   }
 
-  /** The one game still collecting, which is the crew's current game. */
-  activeGame(crewId: string): GameRecord | undefined {
+  /** The one game still collecting, which is the group's current game. */
+  activeGame(groupId: string): GameRecord | undefined {
     return this.database
       .select()
       .from(games)
-      .where(and(eq(games.crewId, crewId), isNull(games.revealedAt)))
+      .where(and(eq(games.groupId, groupId), isNull(games.revealedAt)))
       .get()
   }
 
-  revealedGames(crewId: string): GameRecord[] {
+  revealedGames(groupId: string): GameRecord[] {
     return this.database
       .select()
       .from(games)
-      .where(and(eq(games.crewId, crewId), isNotNull(games.revealedAt)))
+      .where(and(eq(games.groupId, groupId), isNotNull(games.revealedAt)))
       .orderBy(desc(games.number))
       .all()
   }
 
-  gameById(crewId: string, gameId: string): GameRecord | undefined {
+  gameById(groupId: string, gameId: string): GameRecord | undefined {
     return this.database
       .select()
       .from(games)
-      .where(and(eq(games.crewId, crewId), eq(games.id, gameId)))
+      .where(and(eq(games.groupId, groupId), eq(games.id, gameId)))
       .get()
   }
 
@@ -106,21 +106,21 @@ export class Repository {
     return this.entriesQuery(gameId)
   }
 
-  /** Refuses a second concurrent game so a crew always has exactly one current game. */
-  createGame(input: { id: string; crewId: string; userIds: string[]; now: number }): GameRecord | 'in-progress' {
+  /** Refuses a second concurrent game so a group always has exactly one current game. */
+  createGame(input: { id: string; groupId: string; userIds: string[]; now: number }): GameRecord | 'in-progress' {
     return this.database.transaction((tx) => {
       const existing = tx
         .select()
         .from(games)
-        .where(and(eq(games.crewId, input.crewId), isNull(games.revealedAt)))
+        .where(and(eq(games.groupId, input.groupId), isNull(games.revealedAt)))
         .get()
       if (existing) return 'in-progress'
       const highest = tx
         .select({ number: sql<number>`max(${games.number})` })
         .from(games)
-        .where(eq(games.crewId, input.crewId))
+        .where(eq(games.groupId, input.groupId))
         .get()
-      const game = { id: input.id, crewId: input.crewId, number: (highest?.number ?? 0) + 1, createdAt: input.now, revealedAt: null }
+      const game = { id: input.id, groupId: input.groupId, number: (highest?.number ?? 0) + 1, createdAt: input.now, revealedAt: null }
       tx.insert(games).values(game).run()
       tx.insert(entries)
         .values(input.userIds.map((userId) => ({ gameId: game.id, userId, list: null })))
@@ -150,7 +150,7 @@ export class Repository {
     })
   }
 
-  /** Puts a crew member into the game that is already collecting. */
+  /** Puts a group member into the game that is already collecting. */
   joinGame(input: { gameId: string; userId: string; now: number }): JoinGameResult {
     return this.database.transaction((tx) => {
       const game = tx.select().from(games).where(eq(games.id, input.gameId)).get()
@@ -211,11 +211,11 @@ export class Repository {
       .run()
   }
 
-  crewOfGame(gameId: string) {
+  groupOfGame(gameId: string) {
     return this.database
-      .select({ id: crews.id, name: crews.name, token: crews.token })
+      .select({ id: groups.id, name: groups.name, token: groups.token })
       .from(games)
-      .innerJoin(crews, eq(crews.id, games.crewId))
+      .innerJoin(groups, eq(groups.id, games.groupId))
       .where(eq(games.id, gameId))
       .get()
   }
@@ -235,12 +235,12 @@ export class Repository {
       .all()
   }
 
-  private membersOf(crewId: string, tx: Transaction | SealedListsDatabase = this.database): CrewMember[] {
+  private membersOf(groupId: string, tx: Transaction | SealedListsDatabase = this.database): GroupMember[] {
     return tx
-      .select({ userId: crewMembers.userId, name: user.name })
-      .from(crewMembers)
-      .innerJoin(user, eq(user.id, crewMembers.userId))
-      .where(eq(crewMembers.crewId, crewId))
+      .select({ userId: groupMembers.userId, name: user.name })
+      .from(groupMembers)
+      .innerJoin(user, eq(user.id, groupMembers.userId))
+      .where(eq(groupMembers.groupId, groupId))
       .orderBy(asc(user.name))
       .all()
   }

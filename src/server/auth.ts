@@ -73,7 +73,7 @@ export function createAuth(database: SealedListsDatabase, secret: string, email:
     // the same account, not a second one.
     account: { accountLinking: { enabled: true, trustedProviders: [...SOCIAL_PROVIDERS] } },
     /*
-     * Limits are per IP, and a whole crew signing up shares one: six friends in
+     * Limits are per IP, and a whole group signing up shares one: six friends in
      * the same room on the same WiFi must not lock the last two out. Generous
      * enough for that, tight enough to make guessing a password pointless.
      */

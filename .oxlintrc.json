@@ -11,7 +11,7 @@
     "unicorn/filename-case": "off",
     "import/no-unassigned-import": "off"
   },
-  "ignorePatterns": ["src/routeTree.gen.ts", ".output/**", "node_modules/**"],
+  "ignorePatterns": ["src/routeTree.gen.ts", ".output/**", "node_modules/**", "src/components/ui/**"],
   "env": {
     "builtin": true
   }

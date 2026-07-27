@@ -1,5 +1,12 @@
 @import 'tailwindcss' source('./');
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
 
+/*
+ * One palette, two vocabularies: the named colours the app writes by hand, and
+ * the shadcn tokens its components read. Both point at the same hexes, so a
+ * dialog belongs to the same product as the page behind it.
+ */
 @theme {
   --font-display: 'Oswald', ui-sans-serif, system-ui, sans-serif;
   --font-sans: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
@@ -14,6 +21,30 @@
   --color-seal: #a3231f;
   --color-brass: #c8a94e;
   --color-moss: #7d9b5e;
+}
+
+:root {
+  --radius: 0.375rem;
+
+  --background: #14120f;
+  --foreground: #ece3d2;
+  --card: #1d1a15;
+  --card-foreground: #ece3d2;
+  --popover: #1d1a15;
+  --popover-foreground: #ece3d2;
+  --primary: #a3231f;
+  --primary-foreground: #f6efe2;
+  --secondary: #262219;
+  --secondary-foreground: #ece3d2;
+  --muted: #262219;
+  --muted-foreground: #9b9484;
+  --accent: #332d23;
+  --accent-foreground: #ece3d2;
+  --destructive: #a3231f;
+  --destructive-foreground: #f6efe2;
+  --border: #332d23;
+  --input: #332d23;
+  --ring: #c8a94e;
 }
 
 @layer base {
@@ -50,40 +81,7 @@
   @apply font-display text-xs tracking-[0.18em] text-faint uppercase;
 }
 
-@utility label {
-  @apply mb-1.5 block font-display text-xs tracking-[0.14em] text-faint uppercase;
-}
-
-@utility field {
-  @apply w-full rounded border border-edge bg-floor px-3 py-2.5 text-parchment transition-colors placeholder:text-faint/60 focus:border-brass focus:outline-none;
-}
-
-/* Every control is at least a comfortable thumb target on a phone. */
-@utility button-primary {
-  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded border border-seal bg-seal px-4 py-2 font-display text-sm tracking-[0.08em] text-parchment uppercase transition-colors hover:bg-seal/85 active:bg-seal/70 disabled:cursor-not-allowed disabled:border-edge disabled:bg-raised disabled:text-faint;
-}
-
-@utility button-quiet {
-  @apply inline-flex min-h-9 items-center justify-center gap-2 rounded border border-edge bg-raised px-3 py-1.5 font-display text-xs tracking-[0.08em] text-parchment uppercase transition-colors hover:border-brass/60 disabled:cursor-not-allowed disabled:text-faint;
-}
-
-@utility button-provider {
-  @apply inline-flex min-h-11 w-full items-center justify-center gap-2.5 rounded border border-edge bg-raised px-4 py-2 text-sm text-parchment transition-colors hover:border-brass/60;
-}
-
-@utility panel {
-  @apply rounded-lg border border-edge bg-surface;
-}
-
-@utility link-quiet {
-  @apply text-faint underline decoration-edge underline-offset-4 transition-colors hover:text-brass hover:decoration-brass/60;
-}
-
-/* The status language: one shape, three states, used everywhere a player appears. */
-@utility stamp {
-  @apply inline-block size-2 shrink-0 rounded-full;
-}
-
+/* The status language: one shape, three states, wherever a player appears. */
 @utility stamp-waiting {
   @apply inline-block size-2 shrink-0 rounded-full border border-faint/60;
 }
@@ -98,12 +96,8 @@
 
 /*
  * The one animated moment in the app: lists arriving together when the last one
- * lands. Staggered by index so it reads as a set being opened, not a page load.
- */
-/*
- * Starts dimmed rather than transparent: if the animation never runs, the fill
- * mode leaves the card readable instead of invisible. Content is never hidden
- * behind motion.
+ * lands. Starts dimmed rather than transparent, so if the animation never runs
+ * the card is still readable. Content is never hidden behind motion.
  */
 @keyframes unseal {
   from {
@@ -116,7 +110,6 @@
   }
 }
 
-/* The stagger comes from an inline animation-delay, one card at a time. */
 @utility unseal {
   animation: unseal 380ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }

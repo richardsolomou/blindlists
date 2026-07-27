@@ -1,5 +1,10 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { authClient } from '../client/authClient'
 import { emailPreferenceQuery, meQuery, signInOptionsQuery } from '../client/queries'
 import { errorMessage } from '../client/queryClient'
@@ -12,7 +17,7 @@ export const Route = createFileRoute('/account')({
       context.queryClient.ensureQueryData(emailPreferenceQuery()),
       context.queryClient.ensureQueryData(signInOptionsQuery()),
     ]),
-  head: () => ({ meta: [{ title: 'Your account — Sealed Lists' }] }),
+  head: () => ({ meta: [{ title: 'Account — Sealed Lists' }] }),
   component: AccountPage,
 })
 
@@ -23,9 +28,13 @@ function AccountPage() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
 
-  const preferenceMutation = useMutation({
+  const save = useMutation({
     mutationFn: (gameEmails: boolean) => setEmailPreference({ data: { gameEmails } }),
-    onSuccess: (result) => queryClient.setQueryData(emailPreferenceQuery().queryKey, result),
+    onSuccess: (result) => {
+      queryClient.setQueryData(emailPreferenceQuery().queryKey, result)
+      toast.success(result.gameEmails ? 'Email on.' : 'Email off.')
+    },
+    onError: (error) => toast.error(errorMessage(error)),
   })
 
   if (!viewer) {
@@ -36,52 +45,56 @@ function AccountPage() {
     )
   }
 
-  const gameEmails = preference?.gameEmails ?? true
-
   return (
-    <main className="space-y-10">
-      <header>
-        <p className="eyebrow">Your account</p>
-        <h1 className="mt-2 text-3xl">{viewer.name}</h1>
-        <p className="mt-1 text-sm text-faint">{viewer.email}</p>
-      </header>
+    <main className="space-y-6">
+      <div>
+        <h1 className="text-3xl">{viewer.name}</h1>
+        <p className="mt-1.5 text-sm text-faint">{viewer.email}</p>
+      </div>
 
-      <section>
-        <h2 className="label">Email</h2>
-        {options.emailConfigured ? (
-          <label className="flex items-start gap-3 text-sm">
-            <input
-              type="checkbox"
-              className="mt-0.5 size-4 accent-seal"
-              checked={gameEmails}
-              disabled={preferenceMutation.isPending}
-              onChange={(event) => preferenceMutation.mutate(event.target.checked)}
-            />
-            <span>
-              Tell me when a game starts and when every list is in.
-              <span className="mt-1 block text-faint">Two emails per game at most. Nothing else, ever.</span>
-            </span>
-          </label>
-        ) : (
-          <p className="text-sm text-faint">This instance has no mail server configured, so it sends nothing.</p>
-        )}
-        {preferenceMutation.isError && <p className="mt-3 text-sm text-seal">{errorMessage(preferenceMutation.error)}</p>}
-      </section>
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-display text-base">Email</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {options.emailConfigured ? (
+            <div className="flex items-start justify-between gap-6">
+              <div>
+                <Label htmlFor="game-emails">Tell me about my games</Label>
+                <p className="mt-1.5 text-sm text-faint">
+                  When a game starts and your list is due, and when the last list comes in. Nothing else.
+                </p>
+              </div>
+              <Switch
+                id="game-emails"
+                checked={preference?.gameEmails ?? true}
+                disabled={save.isPending}
+                onCheckedChange={(checked) => save.mutate(checked)}
+              />
+            </div>
+          ) : (
+            <p className="text-sm text-faint">This instance has no mail server, so it sends nothing.</p>
+          )}
+        </CardContent>
+      </Card>
 
-      <section className="border-t border-edge pt-6">
-        <h2 className="label">This device</h2>
-        <button
-          type="button"
-          className="button-quiet"
-          onClick={async () => {
-            await authClient.signOut()
-            await queryClient.invalidateQueries()
-            void navigate({ to: '/' })
-          }}
-        >
-          Sign out
-        </button>
-      </section>
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-display text-base">This device</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              await authClient.signOut()
+              await queryClient.invalidateQueries()
+              void navigate({ to: '/' })
+            }}
+          >
+            Sign out
+          </Button>
+        </CardContent>
+      </Card>
     </main>
   )
 }

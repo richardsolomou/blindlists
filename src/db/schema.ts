@@ -84,43 +84,43 @@ export const rateLimit = sqliteTable(
 )
 
 /** A group of friends who play together. Its token is the link they share once. */
-export const crews = sqliteTable(
-  'crews',
+export const groups = sqliteTable(
+  'groups',
   {
     id: text('id').primaryKey(),
     name: text('name').notNull(),
     token: text('token').notNull(),
     createdAt: integer('created_at').notNull(),
   },
-  (table) => [uniqueIndex('crews_token_unique').on(table.token)],
+  (table) => [uniqueIndex('groups_token_unique').on(table.token)],
 )
 
-export const crewMembers = sqliteTable(
-  'crew_members',
+export const groupMembers = sqliteTable(
+  'group_members',
   {
-    crewId: text('crew_id')
+    groupId: text('group_id')
       .notNull()
-      .references(() => crews.id, { onDelete: 'cascade' }),
+      .references(() => groups.id, { onDelete: 'cascade' }),
     userId: text('user_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
     joinedAt: integer('joined_at').notNull(),
   },
-  (table) => [primaryKey({ columns: [table.crewId, table.userId] }), index('crew_members_user_id_index').on(table.userId)],
+  (table) => [primaryKey({ columns: [table.groupId, table.userId] }), index('group_members_user_id_index').on(table.userId)],
 )
 
 export const games = sqliteTable(
   'games',
   {
     id: text('id').primaryKey(),
-    crewId: text('crew_id')
+    groupId: text('group_id')
       .notNull()
-      .references(() => crews.id, { onDelete: 'cascade' }),
+      .references(() => groups.id, { onDelete: 'cascade' }),
     number: integer('number').notNull(),
     createdAt: integer('created_at').notNull(),
     revealedAt: integer('revealed_at'),
   },
-  (table) => [index('games_crew_id_index').on(table.crewId)],
+  (table) => [index('games_group_id_index').on(table.groupId)],
 )
 
 /** Whether we may email someone about their games. Absent row means yes. */
@@ -132,8 +132,8 @@ export const emailPreferences = sqliteTable('email_preferences', {
 })
 
 /**
- * One player's slot in one game, keyed to the account rather than to crew
- * membership: leaving a crew must not erase your lists from games that have
+ * One player's slot in one game, keyed to the account rather than to group
+ * membership: leaving a group must not erase your lists from games that have
  * already revealed.
  */
 export const entries = sqliteTable(
@@ -150,4 +150,4 @@ export const entries = sqliteTable(
   (table) => [primaryKey({ columns: [table.gameId, table.userId] })],
 )
 
-export const schema = { user, session, account, verification, rateLimit, crews, crewMembers, games, entries, emailPreferences }
+export const schema = { user, session, account, verification, rateLimit, groups, groupMembers, games, entries, emailPreferences }

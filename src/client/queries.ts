@@ -1,10 +1,10 @@
 import { queryOptions } from '@tanstack/react-query'
-import type { CrewView } from '../core/game'
-import { crew, emailPreference, game, me, myCrews, signInOptions } from '../server/fns'
+import type { GroupView } from '../core/game'
+import { group, emailPreference, game, me, myGroups, signInOptions } from '../server/fns'
 
 // While a game is collecting the page polls, so everyone sees the reveal land
 // without refreshing; a revealed game never changes again.
-const collecting = (query: { state: { data?: CrewView | 'signed-out' | null } }) =>
+const collecting = (query: { state: { data?: GroupView | 'signed-out' | null } }) =>
   typeof query.state.data === 'object' && query.state.data?.currentGame?.status === 'collecting' ? 5000 : false
 
 export const meQuery = () => queryOptions({ queryKey: ['me'], queryFn: () => me() })
@@ -13,12 +13,12 @@ export const signInOptionsQuery = () => queryOptions({ queryKey: ['sign-in-optio
 
 export const emailPreferenceQuery = () => queryOptions({ queryKey: ['email-preference'], queryFn: () => emailPreference() })
 
-export const myCrewsQuery = () => queryOptions({ queryKey: ['my-crews'], queryFn: () => myCrews() })
+export const myGroupsQuery = () => queryOptions({ queryKey: ['my-groups'], queryFn: () => myGroups() })
 
-export const crewQuery = (token: string) =>
+export const groupQuery = (token: string) =>
   queryOptions({
-    queryKey: ['crew', token],
-    queryFn: () => crew({ data: { token } }),
+    queryKey: ['group', token],
+    queryFn: () => group({ data: { token } }),
     refetchInterval: collecting,
   })
 

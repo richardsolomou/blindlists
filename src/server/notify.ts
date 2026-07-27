@@ -20,30 +20,30 @@ function report(results: PromiseSettledResult<unknown>[]) {
 }
 
 export function buildNotifier(repository: Repository, email: EmailDelivery, appUrl: () => string): Notifier {
-  const crewLink = (gameId: string) => {
-    const crew = repository.crewOfGame(gameId)
-    return crew ? { crew, url: `${appUrl()}/c/${crew.token}` } : undefined
+  const groupLink = (gameId: string) => {
+    const group = repository.groupOfGame(gameId)
+    return group ? { group, url: `${appUrl()}/c/${group.token}` } : undefined
   }
 
   return {
     gameStarted: (gameId, startedBy) =>
       detach(async () => {
-        const target = crewLink(gameId)
-        const game = target && repository.gameById(target.crew.id, gameId)
+        const target = groupLink(gameId)
+        const game = target && repository.gameById(target.group.id, gameId)
         if (!target || !game) return
         const sends = repository
           .mailableInGame(gameId, startedBy)
-          .map((player) => email.send(gameStartedEmail(player.email, target.crew.name, game.number, target.url)))
+          .map((player) => email.send(gameStartedEmail(player.email, target.group.name, game.number, target.url)))
         report(await Promise.allSettled(sends))
       }),
     gameRevealed: (gameId) =>
       detach(async () => {
-        const target = crewLink(gameId)
-        const game = target && repository.gameById(target.crew.id, gameId)
+        const target = groupLink(gameId)
+        const game = target && repository.gameById(target.group.id, gameId)
         if (!target || !game) return
         const sends = repository
           .mailableInGame(gameId)
-          .map((player) => email.send(gameRevealedEmail(player.email, target.crew.name, game.number, target.url)))
+          .map((player) => email.send(gameRevealedEmail(player.email, target.group.name, game.number, target.url)))
         report(await Promise.allSettled(sends))
       }),
   }

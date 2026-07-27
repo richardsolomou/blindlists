@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1785156860667,
-      "tag": "0000_milky_terrax",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1785158740371,
-      "tag": "0001_brief_winter_soldier",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1785159153009,
-      "tag": "0002_melodic_nitro",
+      "when": 1785162443146,
+      "tag": "0000_lying_domino",
       "breakpoints": true
     }
   ]

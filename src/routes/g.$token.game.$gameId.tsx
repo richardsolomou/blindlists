@@ -1,10 +1,12 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { Link, createFileRoute, notFound } from '@tanstack/react-router'
-import { GameHeader } from '../client/components/GameHeader'
+import { ArrowLeft } from 'lucide-react'
+import { buttonVariants } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { RevealedLists } from '../client/components/RevealedLists'
 import { gameQuery } from '../client/queries'
 
-export const Route = createFileRoute('/c/$token/g/$gameId')({
+export const Route = createFileRoute('/g/$token/game/$gameId')({
   loader: async ({ context, params }) => {
     if (!(await context.queryClient.ensureQueryData(gameQuery(params.token, params.gameId)))) throw notFound()
   },
@@ -18,21 +20,20 @@ function GamePage() {
 
   return (
     <main>
-      <p className="mb-6">
-        <Link to="/c/$token" params={{ token }} className="text-sm text-faint underline hover:text-brass">
-          Back to the crew
-        </Link>
-      </p>
-      <GameHeader game={game} />
+      <Link to="/g/$token" params={{ token }} className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'mb-6 -ml-2 text-faint')}>
+        <ArrowLeft />
+        Back
+      </Link>
+      <h1 className="mb-6 text-3xl">Game {game.number}</h1>
       {game.status === 'revealed' ? (
         <RevealedLists game={game} />
       ) : (
         <p className="text-faint">
-          This game is still collecting lists.{' '}
-          <Link to="/c/$token" params={{ token }} className="text-brass underline">
-            Open the crew page
-          </Link>{' '}
-          to seal yours.
+          This one is still collecting lists.{' '}
+          <Link to="/g/$token" params={{ token }} className="text-brass underline underline-offset-4">
+            Go seal yours
+          </Link>
+          .
         </p>
       )}
     </main>

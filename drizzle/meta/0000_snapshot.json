@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "1676ea09-da28-46ad-a17d-da7bb230e5d2",
+  "id": "9350ca1e-33db-4405-97bf-f3a8beed0d80",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "account": {
@@ -121,51 +121,29 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "crew_members": {
-      "name": "crew_members",
+    "email_preferences": {
+      "name": "email_preferences",
       "columns": {
-        "crew_id": {
-          "name": "crew_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "user_id": {
           "name": "user_id",
           "type": "text",
-          "primaryKey": false,
+          "primaryKey": true,
           "notNull": true,
           "autoincrement": false
         },
-        "joined_at": {
-          "name": "joined_at",
+        "game_emails": {
+          "name": "game_emails",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         }
       },
-      "indexes": {
-        "crew_members_user_id_index": {
-          "name": "crew_members_user_id_index",
-          "columns": ["user_id"],
-          "isUnique": false
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
-        "crew_members_crew_id_crews_id_fk": {
-          "name": "crew_members_crew_id_crews_id_fk",
-          "tableFrom": "crew_members",
-          "tableTo": "crews",
-          "columnsFrom": ["crew_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "crew_members_user_id_user_id_fk": {
-          "name": "crew_members_user_id_user_id_fk",
-          "tableFrom": "crew_members",
+        "email_preferences_user_id_user_id_fk": {
+          "name": "email_preferences_user_id_user_id_fk",
+          "tableFrom": "email_preferences",
           "tableTo": "user",
           "columnsFrom": ["user_id"],
           "columnsTo": ["id"],
@@ -173,55 +151,6 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {
-        "crew_members_crew_id_user_id_pk": {
-          "columns": ["crew_id", "user_id"],
-          "name": "crew_members_crew_id_user_id_pk"
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "crews": {
-      "name": "crews",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "token": {
-          "name": "token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "crews_token_unique": {
-          "name": "crews_token_unique",
-          "columns": ["token"],
-          "isUnique": true
-        }
-      },
-      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
@@ -291,8 +220,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "crew_id": {
-          "name": "crew_id",
+        "group_id": {
+          "name": "group_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -321,28 +250,128 @@
         }
       },
       "indexes": {
-        "games_crew_id_index": {
-          "name": "games_crew_id_index",
-          "columns": ["crew_id"],
-          "isUnique": false
-        },
-        "games_created_at_index": {
-          "name": "games_created_at_index",
-          "columns": ["created_at"],
+        "games_group_id_index": {
+          "name": "games_group_id_index",
+          "columns": ["group_id"],
           "isUnique": false
         }
       },
       "foreignKeys": {
-        "games_crew_id_crews_id_fk": {
-          "name": "games_crew_id_crews_id_fk",
+        "games_group_id_groups_id_fk": {
+          "name": "games_group_id_groups_id_fk",
           "tableFrom": "games",
-          "tableTo": "crews",
-          "columnsFrom": ["crew_id"],
+          "tableTo": "groups",
+          "columnsFrom": ["group_id"],
           "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "group_members": {
+      "name": "group_members",
+      "columns": {
+        "group_id": {
+          "name": "group_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "joined_at": {
+          "name": "joined_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "group_members_user_id_index": {
+          "name": "group_members_user_id_index",
+          "columns": ["user_id"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "group_members_group_id_groups_id_fk": {
+          "name": "group_members_group_id_groups_id_fk",
+          "tableFrom": "group_members",
+          "tableTo": "groups",
+          "columnsFrom": ["group_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "group_members_user_id_user_id_fk": {
+          "name": "group_members_user_id_user_id_fk",
+          "tableFrom": "group_members",
+          "tableTo": "user",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "group_members_group_id_user_id_pk": {
+          "columns": ["group_id", "user_id"],
+          "name": "group_members_group_id_user_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "groups": {
+      "name": "groups",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "groups_token_unique": {
+          "name": "groups_token_unique",
+          "columns": ["token"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
