@@ -1,6 +1,6 @@
 import { RETENTION_DAYS } from '../../core/game'
-import { shortFingerprint } from '../../core/list'
-import type { GameView } from '../../core/types'
+import { shortFingerprint } from '../../core/game'
+import type { GameView } from '../../core/game'
 
 export function RevealedLists({ game }: { game: GameView }) {
   return (

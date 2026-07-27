@@ -1,6 +1,6 @@
 import { RETENTION_MS, gameView } from '../core/game'
-import { normalizeList } from '../core/list'
-import type { GameView } from '../core/types'
+import { normalizeList } from '../core/game'
+import type { GameView } from '../core/game'
 import type { Repository } from '../db/repository'
 import { createId, createToken, fingerprint } from './crypto'
 

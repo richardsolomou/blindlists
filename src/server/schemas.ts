@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { GAME_NAME_MAX_LENGTH, NAME_MAX_LENGTH, PLAYERS_MAX, PLAYERS_MIN, duplicateName } from '../core/game'
-import { LIST_MAX_LENGTH } from '../core/list'
+import { LIST_MAX_LENGTH } from '../core/game'
 
 const token = z.string().min(1).max(64)
 

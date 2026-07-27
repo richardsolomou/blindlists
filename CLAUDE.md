@@ -2,6 +2,10 @@
 
 Read [README.md](README.md) first for what the product does and its trust model. This file covers what is easy to break.
 
+## Product boundary
+
+Blind army list submission for Warhammer 40,000, and nothing else. Lists are opaque text: no parsing, no validation, no points totals, no faction or detachment awareness, no list building. Anything that needs to understand the contents of a list belongs in a different tool.
+
 ## Commands
 
 - `pnpm check` — the full gate (format, lint, `db:check`, build, typecheck, tests). Build runs before typecheck because it generates `src/routeTree.gen.ts`; on a fresh clone typecheck fails until you build.
@@ -10,7 +14,8 @@ Read [README.md](README.md) first for what the product does and its trust model.
 
 ## Load-bearing rules
 
-- **`gameView` in `src/core/game.ts` is the only place visibility is decided.** A list, its fingerprint, and an invite token each reach exactly one audience: the owner, everyone after the reveal, and the host respectively. Route components and server functions must not reassemble a view by hand.
+- **`src/core/game.ts` is the whole domain** — limits, retention, list normalization, types, and `gameView`. It stays free of IO and framework imports.
+- **`gameView` is the only place visibility is decided.** A list, its fingerprint, and an invite token each reach exactly one audience: the owner, everyone after the reveal, and the host respectively. Route components and server functions must not reassemble a view by hand.
 - **The reveal happens inside the repository transaction** (`Repository.sealList`, `Repository.dropPlayer`). Deciding "was that the last list?" outside the transaction races two simultaneous submissions.
 - **Revealed games are immutable**: sealing and dropping both check `revealedAt` first. Every new mutation must too.
 - **Nothing derived is stored.** Fingerprints are recomputed from the list text on read, which is why `gameView` takes a `fingerprint` function rather than importing crypto. Adding a stored column that duplicates the list is a regression.

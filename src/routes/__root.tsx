@@ -10,14 +10,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'Blind Lists — sealed list escrow' },
+      { title: 'Blind Lists — blind army list submission for Warhammer 40,000' },
       {
         name: 'description',
-        content: 'Everyone submits their army list hidden. Nothing is revealed until the last list lands, and revealed lists are locked.',
+        content:
+          'Every player submits their Warhammer 40,000 army list hidden. Nothing is revealed until the last list lands, and revealed lists are locked.',
       },
     ],
     links: [
-      { rel: 'icon', type: 'image/svg+xml', href: `/favicon.svg?v=${__APP_VERSION__}` },
+      { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
       { rel: 'stylesheet', href: appCss },
     ],
   }),

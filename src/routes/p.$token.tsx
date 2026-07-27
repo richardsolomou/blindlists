@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
-import { LIST_MAX_LENGTH, shortFingerprint } from '../core/list'
-import type { GameView } from '../core/types'
+import { LIST_MAX_LENGTH, shortFingerprint } from '../core/game'
+import type { GameView } from '../core/game'
 import { GameHeader } from '../client/components/GameHeader'
 import { RevealedLists } from '../client/components/RevealedLists'
 import { playerGameQuery } from '../client/queries'
@@ -58,8 +58,8 @@ function PlayerPage() {
             className="field min-h-72 font-mono text-sm"
             value={draft ?? ''}
             maxLength={LIST_MAX_LENGTH}
-            aria-label="Your list"
-            placeholder="Paste your list…"
+            aria-label="Your army list"
+            placeholder="Paste your army list from the Warhammer 40,000 app, New Recruit, or BattleScribe…"
             onChange={(event) => setDraft(event.target.value)}
           />
           <div className="flex items-center gap-3">

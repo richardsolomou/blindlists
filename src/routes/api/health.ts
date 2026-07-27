@@ -8,7 +8,7 @@ export const Route = createFileRoute('/api/health')({
       GET: () => {
         try {
           app().database.get(sql`SELECT 1`)
-          return Response.json({ ok: true, version: __APP_VERSION__ })
+          return Response.json({ ok: true })
         } catch (error) {
           return Response.json({ ok: false, error: error instanceof Error ? error.message : 'health check failed' }, { status: 503 })
         }

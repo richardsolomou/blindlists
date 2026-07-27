@@ -12,7 +12,6 @@
     "noEmit": true,
     "verbatimModuleSyntax": true,
     "types": ["vite/client", "node"],
-    "resolveJsonModule": true,
     "paths": {
       "@/*": ["./src/*"]
     }

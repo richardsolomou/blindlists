@@ -1,4 +1,4 @@
-import type { GameView } from '../../core/types'
+import type { GameView } from '../../core/game'
 
 export function GameHeader({ game }: { game: GameView }) {
   return (

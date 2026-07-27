@@ -1,13 +1,13 @@
 # Blind Lists
 
-Sealed list escrow for tabletop games. Everyone submits their army list hidden; the moment the last list lands, all of them are revealed at once and locked. Nobody gets to read an opponent's list first and tailor theirs to beat it.
+Blind army list submission for Warhammer 40,000. Every player pastes their list hidden; the moment the last one lands, all of them are revealed at once and locked. Nobody gets to read an opponent's list first and tailor a detachment to beat it.
 
-Built for Warhammer lists pasted out of a list builder, but it only ever stores text — any game works.
+Paste the text your list builder already exports — the Warhammer 40,000 app, New Recruit, BattleScribe, anything. Blind Lists never parses, validates, or scores a list; it only holds the text you gave it and proves it did not change.
 
 ## How a game runs
 
 1. The host creates a game with a name and the players' names, and gets one private invite link per player plus their own host link.
-2. Each player opens their link, pastes their list, and seals it. They can replace it as long as anyone is still outstanding.
+2. Each player opens their link, pastes their army list, and seals it. They can replace it as long as anyone is still outstanding.
 3. Nobody — including the host — can see another player's list while the game is collecting.
 4. When the last list is sealed, every list is revealed together, fingerprinted with SHA-256, and permanently locked.
 
@@ -17,7 +17,7 @@ There are no accounts, no settings, and nothing to administer.
 
 ## Storage
 
-A game is the two names, one invite token per player, and the list text — a few KB in total. Nothing else is kept: no accounts, no timestamps beyond when the game was created and revealed, and no stored fingerprints (they are recomputed from the list on every read, so a list and its fingerprint can never disagree).
+A game is its name, one name and invite token per player, and the list text — a few KB in total. Nothing else is kept: no accounts, no timestamps beyond when the game was created and revealed, and no stored fingerprints (they are recomputed from the list on every read, so a list and its fingerprint can never disagree).
 
 Whole games are deleted 30 days after creation. The sweep runs at boot and hourly after that (`RETENTION_DAYS` in `src/core/game.ts`), so a public instance stays flat rather than growing forever.
 
@@ -49,7 +49,7 @@ DATA_DIR=./data-dev pnpm dev
 
 ## Deploying
 
-The image is self-contained apart from `/data`, which holds the SQLite database and must be a persistent volume.
+Compose builds the image from this repo. The only state is `/data`, which holds the SQLite database and must be a persistent volume.
 
 ```sh
 cp .env.example .env
@@ -60,7 +60,7 @@ Put it behind a reverse proxy that forwards `X-Forwarded-Host` and `X-Forwarded-
 
 ## Layout
 
-- `src/core` — isomorphic domain rules, including every visibility decision (`gameView`).
+- `src/core/game.ts` — the whole domain in one file: limits, retention, list normalization, and every visibility decision (`gameView`).
 - `src/db` — Drizzle schema, migrations, and the repository that owns the reveal transaction.
 - `src/server` — service, server functions, and the same-origin guard for mutations.
 - `src/client`, `src/routes` — query definitions, four components, and the three pages: create, host, player.

@@ -1,5 +1,5 @@
 import { queryOptions } from '@tanstack/react-query'
-import type { GameView } from '../core/types'
+import type { GameView } from '../core/game'
 import { hostGame, playerGame } from '../server/fns'
 
 // While lists are still coming in the page polls, so everyone sees the reveal

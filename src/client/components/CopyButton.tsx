@@ -4,7 +4,7 @@ export function CopyButton({ value, label, description }: { value: string; label
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    if (!copied) return
+    if (!copied) return undefined
     const timer = setTimeout(() => setCopied(false), 1500)
     return () => clearTimeout(timer)
   }, [copied])

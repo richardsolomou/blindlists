@@ -1,6 +1,6 @@
 import { asc, eq, lt } from 'drizzle-orm'
 import { PLAYERS_MIN, allSealed } from '../core/game'
-import type { GameRecord, PlayerRecord } from '../core/types'
+import type { GameRecord, PlayerRecord } from '../core/game'
 import type { BlindListsDatabase } from './connection'
 import { games, players } from './schema'
 
@@ -12,11 +12,11 @@ export type NewGame = {
   players: { id: string; name: string; seat: number; token: string }[]
 }
 
-export type GameWithPlayers = { game: GameRecord; players: PlayerRecord[] }
-export type PlayerContext = GameWithPlayers & { player: PlayerRecord }
+type GameWithPlayers = { game: GameRecord; players: PlayerRecord[] }
+type PlayerContext = GameWithPlayers & { player: PlayerRecord }
 
-export type SealResult = 'sealed' | 'locked' | 'unknown'
-export type DropResult = 'dropped' | 'locked' | 'sealed' | 'too-few' | 'unknown'
+type SealResult = 'sealed' | 'locked' | 'unknown'
+type DropResult = 'dropped' | 'locked' | 'sealed' | 'too-few' | 'unknown'
 
 export class Repository {
   constructor(private readonly database: BlindListsDatabase) {}

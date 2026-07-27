@@ -7,14 +7,9 @@
     "perf": "warn"
   },
   "rules": {
-    "no-console": "off",
-    "no-underscore-dangle": "off",
-    "import/no-unassigned-import": "off",
-    "unicorn/filename-case": "off",
     "react/react-in-jsx-scope": "off",
-    "typescript/consistent-return": "off",
-    "typescript/no-unsafe-type-assertion": "off",
-    "unicorn/consistent-function-scoping": "off"
+    "unicorn/filename-case": "off",
+    "import/no-unassigned-import": "off"
   },
   "ignorePatterns": ["src/routeTree.gen.ts", ".output/**", "node_modules/**"],
   "env": {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { RETENTION_MS, allSealed, duplicateName, gameView } from './game'
-import type { GameRecord, PlayerRecord } from './types'
+import { allSealed, duplicateName, gameView, normalizeList, shortFingerprint } from './game'
+import type { GameRecord, PlayerRecord } from './game'
 
 const hash = (list: string) => `hash(${list})`
 
@@ -96,12 +96,6 @@ describe('gameView once revealed', () => {
   })
 })
 
-describe('gameView expiry', () => {
-  it('reports when the game will be deleted', () => {
-    expect(gameView(game(), [], { kind: 'host' }, hash).expiresAt).toBe(1000 + RETENTION_MS)
-  })
-})
-
 describe('duplicateName', () => {
   it('reports the first name repeated regardless of case or padding', () => {
     expect(duplicateName(['Alex', 'Rich', ' alex '])).toBe(' alex ')
@@ -109,5 +103,29 @@ describe('duplicateName', () => {
 
   it('returns undefined when every name is distinct', () => {
     expect(duplicateName(['Alex', 'Rich'])).toBeUndefined()
+  })
+})
+
+describe('normalizeList', () => {
+  it('rewrites Windows line endings to LF', () => {
+    expect(normalizeList('Captain\r\nIntercessors')).toBe('Captain\nIntercessors')
+  })
+
+  it('strips trailing whitespace from every line', () => {
+    expect(normalizeList('Captain   \n  Intercessors\t')).toBe('Captain\n  Intercessors')
+  })
+
+  it('drops leading and trailing blank lines', () => {
+    expect(normalizeList('\n\nCaptain\n\n')).toBe('Captain')
+  })
+
+  it('keeps blank lines between blocks', () => {
+    expect(normalizeList('CHARACTERS\n\nCaptain')).toBe('CHARACTERS\n\nCaptain')
+  })
+})
+
+describe('shortFingerprint', () => {
+  it('takes the leading 12 hex characters', () => {
+    expect(shortFingerprint('0123456789abcdef0123456789abcdef')).toBe('0123456789ab')
   })
 })

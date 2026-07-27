@@ -1,6 +1,5 @@
 services:
   blindlists:
-    image: ghcr.io/richardsolomou/blindlists:latest
     build:
       context: .
     restart: unless-stopped
@@ -10,7 +9,6 @@ services:
       # Public origin of the deployment. Only needed when proxy headers cannot
       # represent it; mutations are rejected from any other origin.
       APP_URL: ${APP_URL:-}
-      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-}
     volumes:
       # The SQLite database holding every game and sealed list.
       - ${DATA_HOST_DIR:-./blindlists-data}:/data

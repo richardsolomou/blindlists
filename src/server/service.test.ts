@@ -1,7 +1,7 @@
 import crypto from 'node:crypto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { RETENTION_MS } from '../core/game'
-import { normalizeList } from '../core/list'
+import { normalizeList } from '../core/game'
 import { openDatabase } from '../db/connection'
 import { Repository } from '../db/repository'
 import { BlindListsService } from './service'

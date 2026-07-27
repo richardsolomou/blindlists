@@ -28,10 +28,10 @@ function Home() {
 
   return (
     <main>
-      <h1 className="text-4xl">Lists go in blind</h1>
+      <h1 className="text-4xl">Warhammer 40,000 lists, submitted blind</h1>
       <p className="mt-3 mb-9 max-w-lg text-faint">
-        Everyone submits hidden. When the last list lands, all of them are revealed at once and locked — nobody reads yours first and builds
-        against it.
+        Every player pastes their army list hidden. When the last one lands, all of them are revealed at once and locked — nobody reads
+        yours first and tailors a detachment to beat it.
       </p>
 
       <form
@@ -50,7 +50,7 @@ function Home() {
             className="field"
             value={name}
             maxLength={80}
-            placeholder="Friday night at Alex's"
+            placeholder="Friday night, 2000 pts Strike Force"
             onChange={(event) => setName(event.target.value)}
           />
         </div>

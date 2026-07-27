@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import type { PlayerView } from '../core/types'
+import type { PlayerView } from '../core/game'
 import { CopyButton } from '../client/components/CopyButton'
 import { GameHeader } from '../client/components/GameHeader'
 import { RevealedLists } from '../client/components/RevealedLists'

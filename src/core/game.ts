@@ -1,13 +1,52 @@
-import type { GameRecord, GameView, PlayerRecord, PlayerView, Viewer } from './types'
-
 export const PLAYERS_MIN = 2
 export const PLAYERS_MAX = 16
 export const NAME_MAX_LENGTH = 40
 export const GAME_NAME_MAX_LENGTH = 80
+export const LIST_MAX_LENGTH = 10_000
 
 /** Games are deleted this long after they are created, so storage stays flat. */
 export const RETENTION_DAYS = 30
 export const RETENTION_MS = RETENTION_DAYS * 24 * 60 * 60 * 1000
+
+export type GameStatus = 'collecting' | 'revealed'
+
+export type GameRecord = {
+  id: string
+  name: string
+  createdAt: number
+  revealedAt: number | null
+}
+
+export type PlayerRecord = {
+  id: string
+  name: string
+  seat: number
+  token: string
+  list: string | null
+}
+
+export type Viewer = { kind: 'host' } | { kind: 'player'; playerId: string }
+
+export type PlayerView = {
+  id: string
+  name: string
+  sealed: boolean
+  /** Present only once the game is revealed, or for the viewer's own list. */
+  list: string | null
+  /** SHA-256 of the list above, derived on read rather than stored. */
+  listHash: string | null
+  /** The player's invite link secret, handed to the host so they can share it. */
+  inviteToken: string | null
+  isViewer: boolean
+}
+
+export type GameView = {
+  name: string
+  status: GameStatus
+  sealed: number
+  total: number
+  players: PlayerView[]
+}
 
 export function allSealed(players: readonly PlayerRecord[]) {
   return players.length > 0 && players.every((player) => player.list !== null)
@@ -31,7 +70,6 @@ export function gameView(
     status: revealed ? 'revealed' : 'collecting',
     sealed: players.filter((player) => player.list !== null).length,
     total: players.length,
-    expiresAt: game.createdAt + RETENTION_MS,
     players: players.map((player) => playerView(player, revealed, viewer, fingerprint)),
   }
 }
@@ -58,4 +96,24 @@ export function duplicateName(names: readonly string[]) {
     seen.add(key)
   }
   return undefined
+}
+
+/**
+ * The exact bytes that get stored and hashed, so a player can reproduce the
+ * fingerprint themselves: LF line endings, no trailing whitespace on any line,
+ * no leading or trailing blank lines.
+ */
+export function normalizeList(text: string) {
+  return text
+    .replaceAll('\r\n', '\n')
+    .replaceAll('\r', '\n')
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .join('\n')
+    .replace(/^\n+/, '')
+    .replace(/\n+$/, '')
+}
+
+export function shortFingerprint(hash: string) {
+  return hash.slice(0, 12)
 }
