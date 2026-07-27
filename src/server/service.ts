@@ -1,5 +1,5 @@
 import type { GroupEvents } from '../adapters/events'
-import { MEMBERS_MAX, PLAYERS_MIN, gameView, normalizeList } from '../core/game'
+import { LIST_MAX_LENGTH, MEMBERS_MAX, PLAYERS_MIN, gameView, normalizeList } from '../core/game'
 import type { GroupSummary, GroupView, GameView } from '../core/game'
 import type { Repository } from '../db/repository'
 import { createId, createToken } from './crypto'
@@ -132,6 +132,39 @@ export class SealedListsService {
     this.notifyIfRevealed(group.id, game.id)
     this.events?.publish(group.id)
     return this.groupView(token, userId)
+  }
+
+  /**
+   * Hands a sealed list back for editing. Unsealing drops the entry out of the
+   * sealed count, so nobody can complete the game while its author is still
+   * working — which is the whole reason this exists rather than a blank form.
+   */
+  unsealList(token: string, userId: string): GroupView {
+    const { group } = this.requireMembership(token, userId)
+    const game = this.repository.activeGame(group.id)
+    if (!game) throw new Response('there is no game running', { status: 409 })
+    const result = this.repository.unsealList({ gameId: game.id, userId })
+    if (result === 'unknown') throw new Response('you are not playing in this game', { status: 403 })
+    if (result === 'locked') throw locked()
+    if (result === 'not-sealed') throw new Response('you have not sealed a list', { status: 409 })
+    this.events?.publish(group.id)
+    return this.groupView(token, userId)
+  }
+
+  /**
+   * Saves what someone has typed so far. Deliberately quiet: it publishes no
+   * event, because the only page that wants the text already has it on screen
+   * and a draft is nobody else's business.
+   */
+  saveDraft(token: string, userId: string, draft: string) {
+    const { group } = this.requireMembership(token, userId)
+    const game = this.repository.activeGame(group.id)
+    if (!game) throw new Response('there is no game running', { status: 409 })
+    if (draft.length > LIST_MAX_LENGTH) throw new Response('that list is too long', { status: 400 })
+    const result = this.repository.saveDraft({ gameId: game.id, userId, draft })
+    if (result === 'locked') throw locked()
+    if (result === 'unknown') throw new Response('you have nothing to draft here', { status: 409 })
+    return { saved: true }
   }
 
   /** Puts a group member into the running game — yourself when you decide you are playing after all. */

@@ -28,11 +28,16 @@ export type GameRecord = {
   revealedAt: number | null
 }
 
-/** One player's slot in one game, joined to their account name for display. */
+/**
+ * One player's slot in one game, joined to their account name for display. A
+ * slot holds at most one of the two: `list` once sealed, `draft` while being
+ * worked on. Unsealing moves the text from the first to the second.
+ */
 export type EntryRecord = {
   userId: string
   name: string
   list: string | null
+  draft: string | null
 }
 
 export type EntryView = {
@@ -53,6 +58,12 @@ export type GameView = {
   entries: EntryView[]
   /** Null when the viewer is not playing in this game. */
   viewerSealed: boolean | null
+  /**
+   * What the viewer has typed but not sealed. Kept out of `entries` on purpose:
+   * a draft belongs to one person and there is no state in which anyone else
+   * sees it, not even after the reveal.
+   */
+  viewerDraft: string | null
 }
 
 export type GroupView = {
@@ -104,6 +115,7 @@ export function gameView(game: GameRecord, entries: readonly EntryRecord[], view
     total: entries.length,
     entries: entries.map((entry) => entryView(entry, revealed, viewerId)),
     viewerSealed: viewerEntry ? viewerEntry.list !== null : null,
+    viewerDraft: viewerEntry?.draft ?? null,
   }
 }
 

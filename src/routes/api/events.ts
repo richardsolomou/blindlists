@@ -58,7 +58,16 @@ export const Route = createFileRoute('/api/events')({
               }
             }
             push('retry: 2000\n\n')
-            unsubscribe = app().events.subscribe(groupId, () => push('event: change\ndata: 1\n\n'))
+            const unsubscribeChanges = app().events.subscribe(groupId, () => push('event: change\ndata: 1\n\n'))
+            // Presence is the set of open streams, so arriving and leaving is this
+            // stream opening and closing — there is nothing to time out.
+            const leave = app().presence.arrive(groupId, { userId: viewer.id, name: viewer.name }, (present) =>
+              push(`event: presence\ndata: ${JSON.stringify(present)}\n\n`),
+            )
+            unsubscribe = () => {
+              unsubscribeChanges()
+              leave()
+            }
             // Proxies drop a stream that goes quiet, and the browser reconnects
             // on silence too, so say something well inside either timeout.
             heartbeat = setInterval(() => push(': keepalive\n\n'), HEARTBEAT_MS)

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { Link, createFileRoute, notFound, useNavigate } from '@tanstack/react-router'
-import { Check, Copy, Plus, Trash2, Users } from 'lucide-react'
+import { Check, Copy, Pencil, Plus, Trash2, Users } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -22,15 +22,17 @@ import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { LIST_MAX_LENGTH, PLAYERS_MIN, canRemoveMember } from '../core/game'
 import type { EntryView, GameView, GroupMember, GroupView } from '../core/game'
+import type { PresentPlayer } from '../server/presence'
 import { ConfirmButton } from '../client/components/ConfirmButton'
 import { DeleteGameButton } from '../client/components/DeleteGameButton'
 import { RevealedLists } from '../client/components/RevealedLists'
 import { groupQuery, meQuery, myGroupsQuery } from '../client/queries'
 import { errorMessage } from '../client/queryClient'
 import { useGone } from '../client/useGone'
+import { useDraft } from '../client/useDraft'
 import { useLiveGroup } from '../client/useLiveGroup'
 import { useOrigin } from '../client/useOrigin'
-import { deleteGroup, dropPlayer, joinGame, joinGroup, removeMember, sealList, startGame } from '../server/fns'
+import { deleteGroup, dropPlayer, joinGame, joinGroup, removeMember, sealList, startGame, unsealList } from '../server/fns'
 
 export const Route = createFileRoute('/g/$token')({
   loader: async ({ context, params }) => {
@@ -62,7 +64,7 @@ function GroupPage() {
   const { data: group } = useSuspenseQuery(groupQuery(token))
   const { data: viewer } = useSuspenseQuery(meQuery())
   const isMember = typeof group === 'object' && group !== null && group.isMember
-  useLiveGroup(token, isMember)
+  const present = useLiveGroup(token, isMember)
   // The loader 404s a link that was already dead, so reaching null here means the
   // group went while this page was open — someone else deleted it. Leaving has to
   // happen in an effect: throwing `notFound()` mid-render hits the error boundary.
@@ -77,6 +79,7 @@ function GroupPage() {
         <div>
           <h1 className="text-3xl">{group.name}</h1>
           <p className="mt-1.5 text-sm text-faint">{group.members.map((member) => member.name).join(', ')}</p>
+          <Here present={present} viewerId={viewer.id} />
         </div>
         {group.isMember && (
           <div className="flex flex-wrap items-center gap-2">
@@ -90,7 +93,7 @@ function GroupPage() {
       {group.isMember ? (
         <div className="space-y-8">
           {group.currentGame ? (
-            <CurrentGame token={token} game={group.currentGame} members={group.members} viewerId={viewer.id} />
+            <CurrentGame token={token} game={group.currentGame} members={group.members} viewerId={viewer.id} present={present} />
           ) : (
             <NoGames token={token} group={group} />
           )}
@@ -102,6 +105,26 @@ function GroupPage() {
     </main>
   )
 }
+
+/** Who else has this page open, for the states with no roster on screen to say so. */
+function Here({ present, viewerId }: { present: PresentPlayer[]; viewerId: string }) {
+  const others = present.filter((player) => player.userId !== viewerId)
+  if (others.length === 0) return null
+  const typing = others.filter((player) => player.typing)
+  const named = others.slice(0, 2).map((player) => player.name)
+  const rest = others.length - named.length
+
+  return (
+    <p className="mt-2.5 flex items-center gap-2 text-sm text-faint">
+      <span className="size-2 shrink-0 rounded-full bg-moss" aria-hidden="true" />
+      {typing.length > 0
+        ? `${inWords(typing.map((player) => player.name))} ${typing.length === 1 ? 'is' : 'are'} typing…`
+        : `${inWords(named)}${rest > 0 ? ` and ${rest} more` : ''} ${others.length === 1 ? 'is' : 'are'} here`}
+    </p>
+  )
+}
+
+const inWords = (names: string[]) => (names.length < 2 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`)
 
 function SignInFirst({ token }: { token: string }) {
   return (
@@ -164,9 +187,21 @@ function NoGames({ token, group }: { token: string; group: GroupView }) {
   )
 }
 
-function CurrentGame({ token, game, members, viewerId }: { token: string; game: GameView; members: GroupMember[]; viewerId: string }) {
+function CurrentGame({
+  token,
+  game,
+  members,
+  viewerId,
+  present,
+}: {
+  token: string
+  game: GameView
+  members: GroupMember[]
+  viewerId: string
+  present: PresentPlayer[]
+}) {
   const revealed = game.status === 'revealed'
-  const roster = <Roster token={token} game={game} members={members} />
+  const roster = <Roster token={token} game={game} members={members} present={present} />
 
   return (
     <section>
@@ -198,7 +233,7 @@ function CurrentGame({ token, game, members, viewerId }: { token: string; game: 
       ) : game.viewerSealed ? (
         <Sealed token={token} game={game} roster={roster} />
       ) : (
-        <SealForm token={token} roster={roster} />
+        <SealForm token={token} draft={game.viewerDraft ?? ''} roster={roster} />
       )}
     </section>
   )
@@ -218,8 +253,8 @@ function SittingOut({ token, viewerId }: { token: string; viewerId: string }) {
   )
 }
 
-function SealForm({ token, roster }: { token: string; roster: ReactNode }) {
-  const [draft, setDraft] = useState('')
+function SealForm({ token, draft, roster }: { token: string; draft: string; roster: ReactNode }) {
+  const { text, status, change } = useDraft(token, draft)
   const seal = useGroupMutation(token, (list: string) => sealList({ data: { token, list } }), 'Sealed.')
 
   return (
@@ -230,25 +265,29 @@ function SealForm({ token, roster }: { token: string; roster: ReactNode }) {
             className="space-y-4"
             onSubmit={(event) => {
               event.preventDefault()
-              seal.mutate(draft)
+              seal.mutate(text)
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="list">Your list</Label>
+              <div className="flex items-baseline justify-between gap-4">
+                <Label htmlFor="list">Your list</Label>
+                {/* Only ever says a save happened — "saving" would flicker on every pause. */}
+                {status === 'saved' && <span className="text-xs text-faint">Saved</span>}
+              </div>
               <Textarea
                 id="list"
                 className="min-h-64 font-mono text-sm"
-                value={draft}
+                value={text}
                 maxLength={LIST_MAX_LENGTH}
                 placeholder="Paste it from the Warhammer 40,000 app, New Recruit, BattleScribe, anywhere."
-                onChange={(event) => setDraft(event.target.value)}
+                onChange={(event) => change(event.target.value)}
               />
             </div>
             <div className="flex flex-wrap items-center gap-4">
-              <Button type="submit" disabled={!draft.trim() || seal.isPending}>
+              <Button type="submit" disabled={!text.trim() || seal.isPending}>
                 {seal.isPending ? 'Sealing…' : 'Seal list'}
               </Button>
-              <p className="text-sm text-faint">Nobody can read it until everyone is in.</p>
+              <p className="text-sm text-faint">Kept as you type. Nobody can read it until everyone is in.</p>
             </div>
           </form>
         </CardContent>
@@ -259,10 +298,11 @@ function SealForm({ token, roster }: { token: string; roster: ReactNode }) {
 }
 
 function Sealed({ token, game, roster }: { token: string; game: GameView; roster: ReactNode }) {
-  const [replacing, setReplacing] = useState(false)
+  // Editing unseals server-side, which takes this entry back out of the sealed
+  // count — so the game cannot complete while the author is part way through.
+  const edit = useGroupMutation(token, () => unsealList({ data: { token } }))
   const mine = game.entries.find((entry) => entry.isViewer)
   if (!mine) return null
-  if (replacing) return <SealForm token={token} roster={roster} />
 
   return (
     <div className="space-y-6">
@@ -273,8 +313,9 @@ function Sealed({ token, game, roster }: { token: string; game: GameView; roster
             Sealed
           </CardTitle>
           <CardAction>
-            <Button variant="outline" size="sm" onClick={() => setReplacing(true)}>
-              Replace
+            <Button variant="outline" size="sm" disabled={edit.isPending} onClick={() => edit.mutate(undefined)}>
+              <Pencil />
+              {edit.isPending ? 'Opening…' : 'Edit'}
             </Button>
           </CardAction>
         </CardHeader>
@@ -282,13 +323,13 @@ function Sealed({ token, game, roster }: { token: string; game: GameView; roster
           <pre className="overflow-x-auto font-mono text-sm leading-relaxed whitespace-pre-wrap">{mine.list}</pre>
         </CardContent>
       </Card>
-      <p className="text-sm text-faint">You can swap it out until the last list is in.</p>
+      <p className="text-sm text-faint">Editing takes it back out of the count, so nobody can finish the game while you change it.</p>
       {roster}
     </div>
   )
 }
 
-function Roster({ token, game, members }: { token: string; game: GameView; members: GroupMember[] }) {
+function Roster({ token, game, members, present }: { token: string; game: GameView; members: GroupMember[]; present: PresentPlayer[] }) {
   const drop = useGroupMutation(token, (userId: string) => dropPlayer({ data: { token, userId } }), 'Dropped.')
   const join = useGroupMutation(token, (userId: string) => joinGame({ data: { token, userId } }), 'Added.')
   const missing = members.filter((member) => !game.entries.some((entry) => entry.userId === member.userId))
@@ -303,6 +344,7 @@ function Roster({ token, game, members }: { token: string; game: GameView; membe
           <RosterRow
             key={entry.userId}
             entry={entry}
+            here={present.find((player) => player.userId === entry.userId)}
             canDrop={game.entries.length > 2}
             dropping={drop.isPending}
             onDrop={() => drop.mutate(entry.userId)}
@@ -331,15 +373,29 @@ function Roster({ token, game, members }: { token: string; game: GameView; membe
   )
 }
 
-function RosterRow({ entry, canDrop, dropping, onDrop }: { entry: EntryView; canDrop: boolean; dropping: boolean; onDrop: () => void }) {
+function RosterRow({
+  entry,
+  here,
+  canDrop,
+  dropping,
+  onDrop,
+}: {
+  entry: EntryView
+  here: PresentPlayer | undefined
+  canDrop: boolean
+  dropping: boolean
+  onDrop: () => void
+}) {
   return (
     <div className="flex items-center gap-3 py-2">
-      <Initials name={entry.name} />
+      <Initials name={entry.name} here={here !== undefined} />
       <span className="min-w-0 flex-1 truncate">
         {entry.name}
         {entry.isViewer && <span className="ml-2 text-xs tracking-[0.14em] text-faint uppercase">you</span>}
       </span>
-      {entry.sealed ? (
+      {here?.typing && !entry.sealed ? (
+        <span className="text-sm text-brass">Typing…</span>
+      ) : entry.sealed ? (
         <span className="flex items-center gap-2 text-sm text-moss">
           <Check className="size-3.5" />
           Sealed
@@ -362,18 +418,23 @@ function RosterRow({ entry, canDrop, dropping, onDrop }: { entry: EntryView; can
   )
 }
 
-function Initials({ name }: { name: string }) {
+function Initials({ name, here = false }: { name: string; here?: boolean }) {
   const initials = name
     .split(/\s+/)
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? '')
     .join('')
   return (
-    <span
-      aria-hidden="true"
-      className="grid size-8 shrink-0 place-items-center rounded-full border border-edge bg-raised font-display text-xs text-faint"
-    >
-      {initials}
+    <span className="relative shrink-0" aria-hidden="true">
+      <span
+        className={cn(
+          'grid size-8 place-items-center rounded-full border bg-raised font-display text-xs',
+          here ? 'border-moss/60 text-parchment' : 'border-edge text-faint',
+        )}
+      >
+        {initials}
+      </span>
+      {here && <span className="absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full border-2 border-surface bg-moss" />}
     </span>
   )
 }

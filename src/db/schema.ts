@@ -146,6 +146,8 @@ export const entries = sqliteTable(
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
     list: text('list'),
+    /** Typed but not sealed, saved as they go. Only ever read back to its author. */
+    draft: text('draft'),
   },
   (table) => [primaryKey({ columns: [table.gameId, table.userId] })],
 )

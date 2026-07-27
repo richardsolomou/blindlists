@@ -569,3 +569,117 @@ describe('deleteGroup', () => {
     expect(changed).toHaveLength(1)
   })
 })
+
+describe('drafts', () => {
+  it('keeps what someone has typed', () => {
+    const { token } = groupWithGame()
+    service.saveDraft(token, 'alex', 'half a list')
+    expect(service.groupView(token, 'alex').currentGame?.viewerDraft).toBe('half a list')
+  })
+
+  it('keeps it verbatim, since it is still being written', () => {
+    const { token } = groupWithGame()
+    service.saveDraft(token, 'alex', '  Captain \n\n')
+    expect(service.groupView(token, 'alex').currentGame?.viewerDraft).toBe('  Captain \n\n')
+  })
+
+  it('shows nobody else the text', () => {
+    const { token } = groupWithGame()
+    service.saveDraft(token, 'alex', 'half a list')
+    expect(service.groupView(token, 'rich').currentGame?.viewerDraft).toBeNull()
+  })
+
+  it('keeps a draft out of the entries entirely', () => {
+    const { token } = groupWithGame()
+    service.saveDraft(token, 'alex', 'half a list')
+    expect(JSON.stringify(service.groupView(token, 'rich').currentGame?.entries)).not.toContain('half a list')
+  })
+
+  it('does not count as sealed', () => {
+    const { token } = groupWithGame()
+    service.saveDraft(token, 'alex', 'half a list')
+    expect(service.groupView(token, 'alex').currentGame?.sealed).toBe(0)
+  })
+
+  it('cannot on its own reveal a game', () => {
+    const { token } = groupWithGame()
+    for (const id of ['alex', 'rich']) service.sealList(token, id, `${id} list`)
+    service.saveDraft(token, 'dan', 'still deciding')
+    expect(service.groupView(token, 'alex').currentGame?.status).toBe('collecting')
+  })
+
+  it('is dropped once the list is sealed', () => {
+    const { token } = groupWithGame()
+    service.saveDraft(token, 'alex', 'half a list')
+    service.sealList(token, 'alex', 'the whole list')
+    expect(service.groupView(token, 'alex').currentGame?.viewerDraft).toBeNull()
+  })
+
+  it('is refused for a player who is not in the game', () => {
+    const { token } = groupWithGame()
+    service.joinGroup(token, 'sam')
+    expect(rejection(() => service.saveDraft(token, 'sam', 'not playing'))).toBe(409)
+  })
+
+  it('is refused once the game is revealed', () => {
+    const { token } = groupWithGame()
+    for (const id of ['alex', 'rich', 'dan']) service.sealList(token, id, `${id} list`)
+    expect(rejection(() => service.saveDraft(token, 'alex', 'too late'))).toBe(409)
+  })
+})
+
+describe('unsealList', () => {
+  it('hands the list back as a draft', () => {
+    const { token } = groupWithGame()
+    service.sealList(token, 'alex', 'Alex list')
+    expect(service.unsealList(token, 'alex').currentGame?.viewerDraft).toBe('Alex list')
+  })
+
+  it('stops counting as sealed', () => {
+    const { token } = groupWithGame()
+    service.sealList(token, 'alex', 'Alex list')
+    expect(service.unsealList(token, 'alex').currentGame?.sealed).toBe(0)
+  })
+
+  it('holds the reveal open, so nobody finishes the game mid-edit', () => {
+    const { token } = groupWithGame()
+    for (const id of ['alex', 'rich', 'dan']) service.sealList(token, id, `${id} list`)
+    expect(rejection(() => service.unsealList(token, 'alex'))).toBe(409)
+  })
+
+  it('keeps the others from completing while one player is editing', () => {
+    const { token } = groupWithGame()
+    service.sealList(token, 'alex', 'Alex list')
+    service.unsealList(token, 'alex')
+    service.sealList(token, 'rich', 'Rich list')
+    expect(service.sealList(token, 'dan', 'Dan list').currentGame?.status).toBe('collecting')
+  })
+
+  it('reveals as normal once the edit is sealed again', () => {
+    const { token } = groupWithGame()
+    for (const id of ['alex', 'rich'] as const) service.sealList(token, id, `${id} list`)
+    service.unsealList(token, 'alex')
+    service.sealList(token, 'dan', 'Dan list')
+    expect(service.sealList(token, 'alex', 'Alex second thoughts').currentGame?.status).toBe('revealed')
+  })
+
+  it('shows the reworked list, not the one first sealed', () => {
+    const { token } = groupWithGame()
+    for (const id of ['alex', 'rich', 'dan'] as const) service.sealList(token, id, `${id} list`)
+    const view = service.groupView(token, 'rich')
+    expect(view.currentGame?.entries.find((entry) => entry.name === 'Alex')?.list).toBe('alex list')
+  })
+
+  it('refuses someone who has not sealed', () => {
+    const { token } = groupWithGame()
+    expect(rejection(() => service.unsealList(token, 'alex'))).toBe(409)
+  })
+
+  it('announces the change, so the count drops on everyone else', () => {
+    const { token } = groupWithGame()
+    service.sealList(token, 'alex', 'Alex list')
+    changed = []
+    service.unsealList(token, 'alex')
+    expect(changed).toHaveLength(1)
+  })
+})

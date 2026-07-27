@@ -4,7 +4,7 @@ import { app } from './app'
 import { configuredProviders } from './auth'
 import { requireMutationOrigin } from './mutationOrigin'
 import { rpc } from './rpc'
-import { createGroupSchema, gameSchema, memberSchema, sealListSchema, startGameSchema, tokenSchema } from './schemas'
+import { createGroupSchema, gameSchema, memberSchema, saveDraftSchema, sealListSchema, startGameSchema, tokenSchema } from './schemas'
 import { currentUser, requireUser } from './session'
 
 /** Reads answer null for a link that points at nothing, so the route can render a real 404. */
@@ -128,6 +128,41 @@ export const sealList = createServerFn({ method: 'POST' })
       requireMutationOrigin()
       const viewer = await requireUser()
       return app().service.sealList(data.token, viewer.id, data.list)
+    }),
+  )
+
+export const unsealList = createServerFn({ method: 'POST' })
+  .validator(tokenSchema)
+  .handler(({ data }) =>
+    rpc(async () => {
+      requireMutationOrigin()
+      const viewer = await requireUser()
+      return app().service.unsealList(data.token, viewer.id)
+    }),
+  )
+
+/** Called as someone types, so it stays as small as a mutation can be. */
+export const saveDraft = createServerFn({ method: 'POST' })
+  .validator(saveDraftSchema)
+  .handler(({ data }) =>
+    rpc(async () => {
+      requireMutationOrigin()
+      const viewer = await requireUser()
+      const saved = app().service.saveDraft(data.token, viewer.id, data.draft)
+      // Saving means the typing stopped: one call does both.
+      app().presence.typing(app().service.memberGroupId(data.token, viewer.id), viewer.id, false)
+      return saved
+    }),
+  )
+
+export const setTyping = createServerFn({ method: 'POST' })
+  .validator(tokenSchema)
+  .handler(({ data }) =>
+    rpc(async () => {
+      requireMutationOrigin()
+      const viewer = await requireUser()
+      app().presence.typing(app().service.memberGroupId(data.token, viewer.id), viewer.id, true)
+      return { typing: true }
     }),
   )
 

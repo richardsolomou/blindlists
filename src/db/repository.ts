@@ -8,6 +8,8 @@ type Group = { group: GroupRecord; members: GroupMember[] }
 
 type JoinGroupResult = 'joined' | 'already-in' | 'full'
 type SealResult = 'sealed' | 'locked' | 'unknown'
+type UnsealResult = 'unsealed' | 'locked' | 'not-sealed' | 'unknown'
+type DraftResult = 'saved' | 'locked' | 'unknown'
 type DropResult = 'dropped' | 'locked' | 'sealed' | 'too-few' | 'unknown'
 type JoinGameResult = 'joined' | 'locked' | 'already-in' | 'unknown'
 type RemoveMemberResult = 'removed' | 'unknown' | 'too-few'
@@ -155,12 +157,54 @@ export class Repository {
         .where(and(eq(entries.gameId, input.gameId), eq(entries.userId, input.userId)))
         .get()
       if (!entry) return 'unknown'
+      // The sealed list is now the only copy: a leftover draft would be a second
+      // answer to "what did they write?".
       tx.update(entries)
-        .set({ list: input.list })
+        .set({ list: input.list, draft: null })
         .where(and(eq(entries.gameId, input.gameId), eq(entries.userId, input.userId)))
         .run()
       this.revealIfComplete(tx, input.gameId, input.now)
       return 'sealed'
+    })
+  }
+
+  /**
+   * Hands a sealed list back to its author as a draft. The entry stops counting
+   * as sealed, which is the point: the game cannot reveal out from under someone
+   * who is part way through changing their mind.
+   */
+  unsealList(input: { gameId: string; userId: string }): UnsealResult {
+    return this.database.transaction((tx) => {
+      const game = tx.select().from(games).where(eq(games.id, input.gameId)).get()
+      if (!game) return 'unknown'
+      if (game.revealedAt !== null) return 'locked'
+      const entry = tx
+        .select()
+        .from(entries)
+        .where(and(eq(entries.gameId, input.gameId), eq(entries.userId, input.userId)))
+        .get()
+      if (!entry) return 'unknown'
+      if (entry.list === null) return 'not-sealed'
+      tx.update(entries)
+        .set({ list: null, draft: entry.list })
+        .where(and(eq(entries.gameId, input.gameId), eq(entries.userId, input.userId)))
+        .run()
+      return 'unsealed'
+    })
+  }
+
+  /** Saves work in progress. Never touches a sealed list, and never reveals anything. */
+  saveDraft(input: { gameId: string; userId: string; draft: string }): DraftResult {
+    return this.database.transaction((tx) => {
+      const game = tx.select().from(games).where(eq(games.id, input.gameId)).get()
+      if (!game) return 'unknown'
+      if (game.revealedAt !== null) return 'locked'
+      const updated = tx
+        .update(entries)
+        .set({ draft: input.draft })
+        .where(and(eq(entries.gameId, input.gameId), eq(entries.userId, input.userId), isNull(entries.list)))
+        .run()
+      return updated.changes > 0 ? 'saved' : 'unknown'
     })
   }
 
@@ -241,7 +285,7 @@ export class Repository {
 
   private entriesQuery(gameId: string, tx: Transaction | SealedListsDatabase = this.database): EntryRecord[] {
     return tx
-      .select({ userId: entries.userId, name: user.name, list: entries.list })
+      .select({ userId: entries.userId, name: user.name, list: entries.list, draft: entries.draft })
       .from(entries)
       .innerJoin(user, eq(user.id, entries.userId))
       .where(eq(entries.gameId, gameId))

@@ -4,6 +4,7 @@ import { createGroupEvents, type GroupEvents } from '../adapters/events'
 import { databasePath, openDatabase, type SealedListsDatabase } from '../db/connection'
 import { Repository } from '../db/repository'
 import { authSecret, createAuth } from './auth'
+import { Presence } from './presence'
 import { buildNotifier } from './notify'
 import { SealedListsService } from './service'
 
@@ -11,6 +12,7 @@ type App = {
   database: SealedListsDatabase
   service: SealedListsService
   events: GroupEvents
+  presence: Presence
   auth: ReturnType<typeof createAuth>
   emailConfigured: boolean
 }
@@ -32,6 +34,7 @@ export function app(): App {
       database,
       service,
       events,
+      presence: new Presence(),
       auth: createAuth(database, authSecret(path.dirname(file)), email),
       emailConfigured: email.configured,
     }

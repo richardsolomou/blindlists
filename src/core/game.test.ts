@@ -4,7 +4,12 @@ import type { EntryRecord, GameRecord } from './game'
 
 const game = (revealedAt: number | null = null): GameRecord => ({ id: 'game1', number: 3, createdAt: 1000, revealedAt })
 
-const entry = (id: string, sealed: boolean): EntryRecord => ({ userId: id, name: id, list: sealed ? `${id} list` : null })
+const entry = (id: string, sealed: boolean, draft: string | null = null): EntryRecord => ({
+  userId: id,
+  name: id,
+  list: sealed ? `${id} list` : null,
+  draft,
+})
 
 describe('allSealed', () => {
   it('is false while any player is outstanding', () => {
@@ -91,5 +96,43 @@ describe('normalizeList', () => {
 
   it('keeps blank lines between blocks', () => {
     expect(normalizeList('CHARACTERS\n\nCaptain')).toBe('CHARACTERS\n\nCaptain')
+  })
+})
+
+describe('a draft in gameView', () => {
+  it('reaches its author', () => {
+    const entries = [entry('alex', false, 'half a list'), entry('rich', true)]
+    expect(gameView(game(), entries, 'alex').viewerDraft).toBe('half a list')
+  })
+
+  it('reaches nobody else', () => {
+    const entries = [entry('alex', false, 'half a list'), entry('rich', true)]
+    expect(gameView(game(), entries, 'rich').viewerDraft).toBeNull()
+  })
+
+  it('is not in the entries, so it cannot leak through one', () => {
+    const entries = [entry('alex', false, 'half a list')]
+    expect(JSON.stringify(gameView(game(), entries, 'rich').entries)).not.toContain('half a list')
+  })
+
+  it('is withheld from a signed-out reader like everything else', () => {
+    const entries = [entry('alex', false, 'half a list')]
+    expect(gameView(game(), entries, null).viewerDraft).toBeNull()
+  })
+
+  it('does not make its author count as sealed', () => {
+    const entries = [entry('alex', false, 'half a list'), entry('rich', true)]
+    expect(gameView(game(), entries, 'alex').viewerSealed).toBe(false)
+  })
+
+  it('leaves a revealed game reading as revealed', () => {
+    const entries = [entry('alex', true), entry('rich', true)]
+    expect(gameView(game(2000), entries, 'alex').viewerDraft).toBeNull()
+  })
+})
+
+describe('allSealed with a draft outstanding', () => {
+  it('is false while someone is still writing', () => {
+    expect(allSealed([entry('alex', true), entry('rich', false, 'nearly there')])).toBe(false)
   })
 })

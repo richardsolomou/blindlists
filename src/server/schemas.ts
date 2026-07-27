@@ -14,4 +14,7 @@ export const startGameSchema = z.object({ token, userIds: z.array(id).min(PLAYER
 
 export const sealListSchema = z.object({ token, list: z.string().min(1).max(LIST_MAX_LENGTH) })
 
+/** Unlike a list, a draft may be empty: clearing the box is a state worth keeping. */
+export const saveDraftSchema = z.object({ token, draft: z.string().max(LIST_MAX_LENGTH) })
+
 export const memberSchema = z.object({ token, userId: id })
