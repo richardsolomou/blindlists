@@ -12,7 +12,7 @@ import { createId, createToken } from './crypto'
  * caller passes in, and any of them may start a game or clear a no-show —
  * nobody can read another list before the reveal either way.
  */
-export class BlindListsService {
+export class SealedListsService {
   constructor(
     private readonly repository: Repository,
     private readonly clock: () => number = Date.now,

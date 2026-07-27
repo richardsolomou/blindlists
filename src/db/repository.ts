@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, isNotNull, isNull, lt, sql } from 'drizzle-orm'
 import { MEMBERS_MAX, allSealed } from '../core/game'
 import type { CrewRecord, EntryRecord, GameRecord, MemberRecord } from '../core/game'
-import type { BlindListsDatabase } from './connection'
+import type { SealedListsDatabase } from './connection'
 import { crews, entries, games, members } from './schema'
 
 export type NewCrew = {
@@ -21,7 +21,7 @@ type JoinResult = 'joined' | 'locked' | 'already-in' | 'unknown'
 type RemoveMemberResult = 'removed' | 'too-few' | 'unknown'
 
 export class Repository {
-  constructor(private readonly database: BlindListsDatabase) {}
+  constructor(private readonly database: SealedListsDatabase) {}
 
   createCrew(crew: NewCrew) {
     this.database.transaction((tx) => {
@@ -198,7 +198,7 @@ export class Repository {
     tx.update(games).set({ revealedAt: now }).where(eq(games.id, gameId)).run()
   }
 
-  private entriesQuery(gameId: string, tx: Transaction | BlindListsDatabase = this.database): EntryRecord[] {
+  private entriesQuery(gameId: string, tx: Transaction | SealedListsDatabase = this.database): EntryRecord[] {
     return tx
       .select({ memberId: entries.memberId, name: members.name, seat: members.seat, list: entries.list })
       .from(entries)
@@ -208,7 +208,7 @@ export class Repository {
       .all()
   }
 
-  private membersOf(crewId: string, tx: Transaction | BlindListsDatabase = this.database): MemberRecord[] {
+  private membersOf(crewId: string, tx: Transaction | SealedListsDatabase = this.database): MemberRecord[] {
     return tx
       .select({ id: members.id, name: members.name, seat: members.seat })
       .from(members)
@@ -218,7 +218,7 @@ export class Repository {
   }
 
   /** Seats are never reused, so a new member always sits after everyone who has ever been in the crew. */
-  private highestSeat(crewId: string, tx: Transaction | BlindListsDatabase = this.database) {
+  private highestSeat(crewId: string, tx: Transaction | SealedListsDatabase = this.database) {
     return (
       tx
         .select({ seat: sql<number>`max(${members.seat})` })
@@ -229,4 +229,4 @@ export class Repository {
   }
 }
 
-type Transaction = Parameters<Parameters<BlindListsDatabase['transaction']>[0]>[0]
+type Transaction = Parameters<Parameters<SealedListsDatabase['transaction']>[0]>[0]

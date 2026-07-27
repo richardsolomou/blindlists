@@ -1,14 +1,14 @@
 {
-  "name": "blindlists",
+  "name": "sealedlists",
   "version": "0.1.0",
   "private": true,
   "description": "Sealed army list escrow: everyone submits hidden, nothing is revealed until the last list lands, and revealed lists are locked.",
-  "homepage": "https://blindlists.ras.sh",
-  "bugs": "https://github.com/richardsolomou/blindlists/issues",
+  "homepage": "https://sealedlists.ras.sh",
+  "bugs": "https://github.com/richardsolomou/sealedlists/issues",
   "license": "AGPL-3.0-only",
   "repository": {
     "type": "git",
-    "url": "https://github.com/richardsolomou/blindlists.git"
+    "url": "https://github.com/richardsolomou/sealedlists.git"
   },
   "type": "module",
   "scripts": {

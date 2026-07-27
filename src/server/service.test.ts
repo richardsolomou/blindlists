@@ -2,14 +2,14 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { RETENTION_MS, normalizeList } from '../core/game'
 import { openDatabase } from '../db/connection'
 import { Repository } from '../db/repository'
-import { BlindListsService } from './service'
+import { SealedListsService } from './service'
 
-let service: BlindListsService
+let service: SealedListsService
 let now = 1000
 
 beforeEach(() => {
   now = 1000
-  service = new BlindListsService(new Repository(openDatabase(':memory:')), () => now)
+  service = new SealedListsService(new Repository(openDatabase(':memory:')), () => now)
 })
 
 /** A crew of three with a game running and everyone in it. */

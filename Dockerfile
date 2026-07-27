@@ -13,9 +13,9 @@ COPY tsconfig.json vite.config.ts ./
 RUN pnpm build
 
 FROM node:24-alpine
-LABEL org.opencontainers.image.title="Blind Lists" \
+LABEL org.opencontainers.image.title="Sealed Lists" \
       org.opencontainers.image.description="Sealed army list escrow: everyone submits hidden, all lists reveal at once and lock." \
-      org.opencontainers.image.source="https://github.com/richardsolomou/blindlists" \
+      org.opencontainers.image.source="https://github.com/richardsolomou/sealedlists" \
       org.opencontainers.image.licenses="AGPL-3.0-only"
 WORKDIR /app
 RUN mkdir -p /data && chown -R node:node /app /data

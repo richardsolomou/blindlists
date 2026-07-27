@@ -28,7 +28,7 @@ function Home() {
 
   return (
     <main>
-      <h1 className="text-4xl">Warhammer 40,000 lists, submitted blind</h1>
+      <h1 className="text-4xl">Warhammer 40,000 lists, sealed until everyone is in</h1>
       <p className="mt-3 mb-9 max-w-lg text-faint">
         Everyone pastes their army list hidden. When the last one lands, all of them are revealed at once and locked — nobody reads yours
         first and tailors a detachment to beat it.

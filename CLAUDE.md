@@ -1,10 +1,10 @@
-# Blind Lists — Agent Guide
+# Sealed Lists — Agent Guide
 
 Read [README.md](README.md) first for what the product does and its trust model. This file covers what is easy to break.
 
 ## Product boundary
 
-Blind army list submission for Warhammer 40,000, and nothing else. Lists are opaque text: no parsing, no validation, no points totals, no faction or detachment awareness, no list building. Anything that needs to understand the contents of a list belongs in a different tool.
+Sealed army list submission for Warhammer 40,000, and nothing else. Lists are opaque text: no parsing, no validation, no points totals, no faction or detachment awareness, no list building. Anything that needs to understand the contents of a list belongs in a different tool.
 
 ## Commands
 

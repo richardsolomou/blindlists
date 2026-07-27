@@ -1,5 +1,5 @@
 services:
-  blindlists:
+  sealedlists:
     build:
       context: .
     restart: unless-stopped
@@ -11,4 +11,4 @@ services:
       APP_URL: ${APP_URL:-}
     volumes:
       # The SQLite database holding every game and sealed list.
-      - ${DATA_HOST_DIR:-./blindlists-data}:/data
+      - ${DATA_HOST_DIR:-./sealedlists-data}:/data

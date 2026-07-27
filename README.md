@@ -1,8 +1,8 @@
-# Blind Lists
+# Sealed Lists
 
-Blind army list submission for Warhammer 40,000. Every player pastes their list hidden; the moment the last one lands, all of them are revealed at once and locked. Nobody gets to read an opponent's list first and tailor a detachment to beat it.
+Sealed army list submission for Warhammer 40,000. Every player pastes their list hidden; the moment the last one lands, all of them are revealed at once and locked. Nobody gets to read an opponent's list first and tailor a detachment to beat it.
 
-Paste the text your list builder already exports — the Warhammer 40,000 app, New Recruit, BattleScribe, anything. Blind Lists never parses, validates, or scores a list; it only holds the text you gave it and proves it did not change.
+Paste the text your list builder already exports — the Warhammer 40,000 app, New Recruit, BattleScribe, anything. Sealed Lists never parses, validates, or scores a list; it only holds the text you gave it and proves it did not change.
 
 ## How it works
 

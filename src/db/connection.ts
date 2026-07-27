@@ -7,13 +7,13 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { schema } from './schema'
 
-export type BlindListsDatabase = BetterSQLite3Database<typeof schema> & { $client: Database.Database }
+export type SealedListsDatabase = BetterSQLite3Database<typeof schema> & { $client: Database.Database }
 
 const migrationsFolder = import.meta.env.PROD
   ? path.join(path.dirname(process.argv[1]), 'drizzle')
   : fileURLToPath(new URL('../../drizzle', import.meta.url))
 
-export function openDatabase(file: string): BlindListsDatabase {
+export function openDatabase(file: string): SealedListsDatabase {
   if (file !== ':memory:') fs.mkdirSync(path.dirname(file), { recursive: true })
   const database = drizzle({ client: new Database(file), schema })
   database.run(sql`PRAGMA journal_mode = WAL`)
@@ -24,10 +24,10 @@ export function openDatabase(file: string): BlindListsDatabase {
   return database
 }
 
-export function closeDatabase(database: BlindListsDatabase) {
+export function closeDatabase(database: SealedListsDatabase) {
   database.$client.close()
 }
 
 export function databasePath(dataDirectory = process.env.DATA_DIR ?? '/data') {
-  return path.join(path.resolve(dataDirectory), 'blindlists.sqlite')
+  return path.join(path.resolve(dataDirectory), 'sealedlists.sqlite')
 }
