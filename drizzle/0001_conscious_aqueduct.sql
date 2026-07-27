@@ -1,1 +1,0 @@
-ALTER TABLE `members` ADD `removed_at` integer;

@@ -6,32 +6,32 @@ Paste the text your list builder already exports — the Warhammer 40,000 app, N
 
 ## How it works
 
-You set up a **crew** once — its name and everyone who plays — and get a single link. Send that to the group once; everybody bookmarks it. There is nothing to sign up for and no password anywhere.
+Everyone makes an account, which is an email and a password and nothing else. You set up a **crew** — its name — and get a single link. Send that to the group once; they sign in and join, and every game after that is waiting at the same place for all of you.
 
-1. First visit, the page asks who you are and you tap your name. That device remembers you from then on.
+1. Sign in. Your name is what the rest of the crew sees, and your lists follow the account onto any device.
 2. Anyone in the crew starts a game and picks who is playing tonight.
 3. Each player pastes their army list and seals it. They can replace it as long as anyone is still outstanding, and nobody can see another list while the game is collecting.
 4. When the last list is sealed, every list is revealed together and permanently locked.
 
-Everybody opens the same bookmark for every future game — no new links, ever. A crew runs one game at a time, and finished games stay on the page as history.
+Everybody opens the same link for every future game — no new links, ever. A crew runs one game at a time, and finished games stay on the page as history. Your home page lists your crews and flags any that are waiting on a list from you.
 
 While a game is still collecting you can change who is in it: join a game you were left out of, add anyone from the crew, or drop a no-show — which reveals the game if everyone else is already in. Someone who has sealed cannot be dropped, and a revealed game can never be edited.
 
-Players come and go from the crew too. Adding one puts them in the roster for future games without touching the game in progress. Removing one takes them off the roster and out of a game still collecting, but leaves their lists in games that already revealed: history stays true. A crew always keeps at least two players.
+Players come and go from the crew too. Anyone with the link can join; anyone in the crew can remove a member or leave themselves. Removal takes them off the roster and out of a game still collecting, but leaves their lists in games that already revealed: history stays true. A crew always keeps at least two players.
 
 There are no accounts, no settings, and nothing to administer.
 
 ## Storage
 
-A crew is its name, its link token, and a name per member — a few hundred bytes, kept as long as the crew uses it so the bookmark never dies. A member who leaves is flagged rather than deleted, so revealed games keep their name. A game is a number, its players, and their list text: a few KB. Nothing else is kept — no accounts, no email, and no timestamps beyond when a game started and revealed. List text is stored exactly as it will be shown, normalized to LF line endings with trailing whitespace and surrounding blank lines removed.
+An account is a name, an email and a password hash. A crew is its name, its link token and a row per member — a few hundred bytes, kept as long as the crew uses it so the link never dies. A game is a number, its players, and their list text: a few KB. Nothing else is kept — no accounts, no email, and no timestamps beyond when a game started and revealed. List text is stored exactly as it will be shown, normalized to LF line endings with trailing whitespace and surrounding blank lines removed.
 
 Whole games are deleted 30 days after they start, taking the lists with them and leaving the crew intact. The sweep runs at boot and hourly after that (`RETENTION_DAYS` in `src/core/game.ts`), so a public instance stays flat rather than growing forever.
 
 ## Trust model
 
-The crew link is the only credential. Anyone who has it can open the crew and tap any name on it, including yours, so keep it to the group and do not post it publicly. Tapping your name sets a cookie so the device remembers you; that cookie is a convenience, not authentication, and grants nothing the link does not already grant.
+Accounts are real: [better-auth](https://better-auth.com) with email and password, argon-grade hashing, sessions in an httpOnly cookie, and rate limits on the sign-in and sign-up routes. You are only ever one player, and only your own account can seal your list.
 
-What the design does guarantee is the part that matters at the table: while a game is collecting the server hands nobody another player's list, whatever they tap, and once revealed a list can never be edited. What it cannot guarantee is a hostile operator — lists sit in plain text in the server's SQLite database, so whoever runs the deployment could read one before the reveal. That is fine among friends running their own instance; an escrow that survives a hostile operator needs a client-side commit–reveal scheme, which this deliberately is not.
+The crew link is an invitation, not a credential. Anyone holding it can see the crew's name and who is in it, and can join — so keep it to the group. Joining is all it grants: a link holder who has not joined sees no game, no roster status and no lists, and cannot open a game by its id. While a game is collecting the server hands nobody another player's list, and once revealed a list can never be edited. What it cannot guarantee is a hostile operator — lists sit in plain text in the server's SQLite database, so whoever runs the deployment could read one before the reveal. That is fine among friends running their own instance; an escrow that survives a hostile operator needs a client-side commit–reveal scheme, which this deliberately is not.
 
 ## Running it
 
@@ -54,15 +54,16 @@ cp .env.example .env
 docker compose up -d
 ```
 
-Put it behind a reverse proxy that forwards `X-Forwarded-Host` and `X-Forwarded-Proto`; set `APP_URL` when it cannot. Health check: `GET /api/health`.
+Put it behind a reverse proxy that forwards `X-Forwarded-Host` and `X-Forwarded-Proto`; set `APP_URL` when it cannot. Sessions are signed with a secret generated into `/data/auth.secret` on first boot — back that file up with the database, or set `AUTH_SECRET` yourself. Health check: `GET /api/health`.
 
 ## Layout
 
 - `src/core/game.ts` — the whole domain in one file: limits, retention, list normalization, and every visibility decision (`gameView`).
 - `src/db` — Drizzle schema, migrations, and the repository that owns the reveal transaction.
 - `src/server` — service, server functions, and the same-origin guard for mutations.
-- `src/server/member.ts` — the per-crew cookie that remembers which name you tapped.
-- `src/client`, `src/routes` — query definitions, four components, and three pages: create a crew, the crew page everything happens on, and a past game.
+- `src/server/auth.ts` — the better-auth instance, and the secret it keeps beside the database.
+- `src/server/session.ts` — reads the signed-in user for server functions.
+- `src/client`, `src/routes` — query definitions, four components, and four pages: sign in, your crews, the crew page everything happens on, and a past game.
 
 ## License
 

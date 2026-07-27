@@ -1,112 +1,103 @@
-import { useMutation } from '@tanstack/react-query'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useRef, useState } from 'react'
-import { MEMBERS_MAX, MEMBERS_MIN, NAME_MAX_LENGTH, RETENTION_DAYS } from '../core/game'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useState } from 'react'
+import { CREW_NAME_MAX_LENGTH, RETENTION_DAYS } from '../core/game'
 import { errorMessage } from '../client/queryClient'
+import { meQuery, myCrewsQuery } from '../client/queries'
 import { createCrew } from '../server/fns'
 
-export const Route = createFileRoute('/')({ component: Home })
-
-type Seat = { key: string; name: string }
+export const Route = createFileRoute('/')({
+  loader: ({ context }) =>
+    Promise.all([context.queryClient.ensureQueryData(meQuery()), context.queryClient.ensureQueryData(myCrewsQuery())]),
+  component: Home,
+})
 
 function Home() {
-  const navigate = useNavigate()
-  const [name, setName] = useState('')
-  const [seats, setSeats] = useState<Seat[]>([
-    { key: 'seat-1', name: '' },
-    { key: 'seat-2', name: '' },
-  ])
-  const nextSeatKey = useRef(seats.length)
-
-  const create = useMutation({
-    mutationFn: (input: { name: string; memberNames: string[] }) => createCrew({ data: input }),
-    onSuccess: ({ token }) => navigate({ to: '/c/$token', params: { token } }),
-  })
-
-  const memberNames = seats.map((seat) => seat.name.trim()).filter(Boolean)
-  const ready = name.trim().length > 0 && memberNames.length === seats.length
-
+  const { data: viewer } = useSuspenseQuery(meQuery())
   return (
     <main>
       <h1 className="text-4xl">Warhammer 40,000 lists, sealed until everyone is in</h1>
       <p className="mt-3 mb-9 max-w-lg text-faint">
-        Everyone pastes their army list hidden. When the last one lands, all of them are revealed at once and locked — nobody reads yours
-        first and tailors a detachment to beat it.
+        Every player pastes their army list hidden. When the last one lands, all of them are revealed at once and locked — nobody reads
+        yours first and tailors a detachment to beat it.
       </p>
+      {viewer ? <YourCrews /> : <SignedOut />}
+    </main>
+  )
+}
 
-      <form
-        className="space-y-5"
-        onSubmit={(event) => {
-          event.preventDefault()
-          create.mutate({ name: name.trim(), memberNames })
-        }}
-      >
-        <div>
-          <label className="label" htmlFor="crew-name">
-            Your crew
-          </label>
+function SignedOut() {
+  return (
+    <section>
+      <Link to="/signin" className="button-primary">
+        Sign in to start
+      </Link>
+      <p className="mt-4 text-sm text-faint">
+        An account keeps your crews and your lists together on every device you use. Games are kept for {RETENTION_DAYS} days.
+      </p>
+    </section>
+  )
+}
+
+function YourCrews() {
+  const { data: crews } = useSuspenseQuery(myCrewsQuery())
+  const [name, setName] = useState('')
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+
+  const create = useMutation({
+    mutationFn: (crewName: string) => createCrew({ data: { name: crewName } }),
+    onSuccess: async ({ token }) => {
+      await queryClient.invalidateQueries(myCrewsQuery())
+      void navigate({ to: '/c/$token', params: { token } })
+    },
+  })
+
+  return (
+    <div className="space-y-10">
+      {crews && crews.length > 0 && (
+        <section>
+          <h2 className="label">Your crews</h2>
+          <ul className="divide-y divide-edge border-y border-edge">
+            {crews.map((crew) => (
+              <li key={crew.token} className="flex items-center gap-3 py-3">
+                <Link to="/c/$token" params={{ token: crew.token }} className="min-w-0 flex-1 truncate hover:text-brass">
+                  {crew.name}
+                </Link>
+                {crew.needsList && <span className="font-display text-xs tracking-[0.14em] text-brass uppercase">list due</span>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section>
+        <h2 className="label">Start a crew</h2>
+        <form
+          className="flex flex-wrap gap-2"
+          onSubmit={(event) => {
+            event.preventDefault()
+            create.mutate(name.trim())
+          }}
+        >
           <input
-            id="crew-name"
-            className="field"
+            className="field max-w-72"
             value={name}
-            maxLength={60}
+            maxLength={CREW_NAME_MAX_LENGTH}
+            aria-label="Crew name"
             placeholder="Tuesday night at Alex's"
             onChange={(event) => setName(event.target.value)}
           />
-        </div>
-
-        <fieldset>
-          <legend className="label">Who plays</legend>
-          <div className="space-y-2">
-            {seats.map((seat, index) => (
-              <div key={seat.key} className="flex gap-2">
-                <input
-                  className="field"
-                  value={seat.name}
-                  maxLength={NAME_MAX_LENGTH}
-                  placeholder={`Player ${index + 1}`}
-                  aria-label={`Player ${index + 1}`}
-                  onChange={(event) =>
-                    setSeats((current) => current.map((entry) => (entry.key === seat.key ? { ...entry, name: event.target.value } : entry)))
-                  }
-                />
-                {seats.length > MEMBERS_MIN && (
-                  <button
-                    type="button"
-                    className="button-quiet"
-                    aria-label={`Remove player ${index + 1}`}
-                    onClick={() => setSeats((current) => current.filter((entry) => entry.key !== seat.key))}
-                  >
-                    Remove
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-          {seats.length < MEMBERS_MAX && (
-            <button
-              type="button"
-              className="button-quiet mt-2"
-              onClick={() => {
-                nextSeatKey.current += 1
-                setSeats((current) => [...current, { key: `seat-${nextSeatKey.current}`, name: '' }])
-              }}
-            >
-              Add player
-            </button>
-          )}
-        </fieldset>
-
-        <button type="submit" className="button-primary" disabled={!ready || create.isPending}>
-          {create.isPending ? 'Creating…' : 'Create crew'}
-        </button>
-        {create.isError && <p className="text-sm text-seal">{errorMessage(create.error)}</p>}
-      </form>
-
-      <p className="mt-9 text-sm text-faint">
-        You get one link for the whole crew. Send it to them once and every game from then on is waiting there. Games stick around for{' '}
-        {RETENTION_DAYS} days.
-      </p>
-    </main>
+          <button type="submit" className="button-primary" disabled={!name.trim() || create.isPending}>
+            {create.isPending ? 'Creating…' : 'Create'}
+          </button>
+        </form>
+        {create.isError && <p className="mt-3 text-sm text-seal">{errorMessage(create.error)}</p>}
+        <p className="mt-4 text-sm text-faint">
+          You get one link to send your friends. They sign in once and join, and every game from then on is waiting there. Games are kept
+          for {RETENTION_DAYS} days.
+        </p>
+      </section>
+    </div>
   )
 }

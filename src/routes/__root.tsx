@@ -1,5 +1,8 @@
 import type { QueryClient } from '@tanstack/react-query'
-import { HeadContent, Link, Outlet, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
+import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { HeadContent, Link, Outlet, Scripts, createRootRouteWithContext, useNavigate } from '@tanstack/react-router'
+import { authClient } from '../client/authClient'
+import { meQuery } from '../client/queries'
 import '@fontsource-variable/inter'
 import '@fontsource/ibm-plex-mono/400.css'
 import '@fontsource/oswald/500.css'
@@ -22,6 +25,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: 'stylesheet', href: appCss },
     ],
   }),
+  loader: ({ context }) => context.queryClient.ensureQueryData(meQuery()),
   component: RootComponent,
 })
 
@@ -33,9 +37,12 @@ function RootComponent() {
       </head>
       <body className="min-h-dvh">
         <div className="mx-auto w-full max-w-2xl px-5 py-12">
-          <Link to="/" className="font-display text-sm tracking-[0.3em] text-faint uppercase hover:text-brass">
-            Sealed Lists
-          </Link>
+          <div className="flex items-baseline justify-between gap-3">
+            <Link to="/" className="font-display text-sm tracking-[0.3em] text-faint uppercase hover:text-brass">
+              Sealed Lists
+            </Link>
+            <Account />
+          </div>
           <div className="mt-10">
             <Outlet />
           </div>
@@ -43,5 +50,29 @@ function RootComponent() {
         <Scripts />
       </body>
     </html>
+  )
+}
+
+function Account() {
+  const { data: viewer } = useSuspenseQuery(meQuery())
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  if (!viewer) return null
+
+  return (
+    <p className="text-sm text-faint">
+      {viewer.name}{' '}
+      <button
+        type="button"
+        className="underline hover:text-brass"
+        onClick={async () => {
+          await authClient.signOut()
+          await queryClient.invalidateQueries()
+          void navigate({ to: '/' })
+        }}
+      >
+        sign out
+      </button>
+    </p>
   )
 }

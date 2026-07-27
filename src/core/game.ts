@@ -1,10 +1,11 @@
-export const MEMBERS_MIN = 2
+export const PLAYERS_MIN = 2
 export const MEMBERS_MAX = 16
-export const NAME_MAX_LENGTH = 40
 export const CREW_NAME_MAX_LENGTH = 60
+export const NAME_MAX_LENGTH = 40
 export const LIST_MAX_LENGTH = 10_000
+export const PASSWORD_MIN_LENGTH = 10
 
-/** Games are deleted this long after they are created, so storage stays flat. */
+/** Games are deleted this long after they start, so storage stays flat. */
 export const RETENTION_DAYS = 30
 export const RETENTION_MS = RETENTION_DAYS * 24 * 60 * 60 * 1000
 
@@ -17,14 +18,11 @@ export type CrewRecord = {
   createdAt: number
 }
 
-export type MemberRecord = {
-  id: string
+/** Someone in the crew. The name is their account name. */
+export type CrewMember = {
+  userId: string
   name: string
-  seat: number
 }
-
-/** A crew always keeps enough people to field a game. */
-export const canRemoveMember = (activeMembers: number) => activeMembers > MEMBERS_MIN
 
 export type GameRecord = {
   id: string
@@ -33,16 +31,15 @@ export type GameRecord = {
   revealedAt: number | null
 }
 
-/** One player's slot in one game, joined to the member's name for display. */
+/** One player's slot in one game, joined to their account name for display. */
 export type EntryRecord = {
-  memberId: string
+  userId: string
   name: string
-  seat: number
   list: string | null
 }
 
 export type EntryView = {
-  memberId: string
+  userId: string
   name: string
   sealed: boolean
   /** Present only once the game is revealed, or for the viewer's own list. */
@@ -63,13 +60,12 @@ export type GameView = {
 
 export type CrewView = {
   name: string
-  /** Members who have not left the crew, in seat order. */
-  members: MemberRecord[]
-  /** Null until the visitor has tapped their name on this device. */
-  viewer: MemberRecord | null
+  members: CrewMember[]
+  /** False when the viewer holds the link but has not joined the crew yet. */
+  isMember: boolean
   /**
    * The game still collecting, or else the one that revealed most recently — so
-   * the reveal appears on the page the crew is already looking at instead of
+   * a reveal appears on the page the crew is already looking at instead of
    * vanishing into history.
    */
   currentGame: GameView | null
@@ -77,6 +73,16 @@ export type CrewView = {
   /** False while a game is still collecting: a crew runs one game at a time. */
   canStartGame: boolean
 }
+
+export type CrewSummary = {
+  name: string
+  token: string
+  /** True when a game is collecting and the viewer still owes it a list. */
+  needsList: boolean
+}
+
+/** A crew always keeps enough people to field a game. */
+export const canRemoveMember = (members: number) => members > PLAYERS_MIN
 
 export function allSealed(entries: readonly EntryRecord[]) {
   return entries.length > 0 && entries.every((entry) => entry.list !== null)
@@ -89,7 +95,7 @@ export function allSealed(entries: readonly EntryRecord[]) {
  */
 export function gameView(game: GameRecord, entries: readonly EntryRecord[], viewerId: string | null): GameView {
   const revealed = game.revealedAt !== null
-  const viewerEntry = entries.find((entry) => entry.memberId === viewerId)
+  const viewerEntry = entries.find((entry) => entry.userId === viewerId)
   return {
     id: game.id,
     number: game.number,
@@ -102,24 +108,14 @@ export function gameView(game: GameRecord, entries: readonly EntryRecord[], view
 }
 
 function entryView(entry: EntryRecord, revealed: boolean, viewerId: string | null): EntryView {
-  const isViewer = entry.memberId === viewerId
+  const isViewer = entry.userId === viewerId
   return {
-    memberId: entry.memberId,
+    userId: entry.userId,
     name: entry.name,
     sealed: entry.list !== null,
     list: revealed || isViewer ? entry.list : null,
     isViewer,
   }
-}
-
-export function duplicateName(names: readonly string[]) {
-  const seen = new Set<string>()
-  for (const name of names) {
-    const key = name.trim().toLocaleLowerCase()
-    if (seen.has(key)) return name
-    seen.add(key)
-  }
-  return undefined
 }
 
 /**

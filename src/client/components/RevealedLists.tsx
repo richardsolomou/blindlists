@@ -4,7 +4,7 @@ export function RevealedLists({ game }: { game: GameView }) {
   return (
     <section className="space-y-4">
       {game.entries.map((entry) => (
-        <article key={entry.memberId} className="panel overflow-hidden">
+        <article key={entry.userId} className="panel overflow-hidden">
           <h2 className="border-b border-edge px-4 py-3 text-lg">
             {entry.name}
             {entry.isViewer && <span className="ml-2 text-xs tracking-[0.14em] text-faint uppercase">you</span>}
