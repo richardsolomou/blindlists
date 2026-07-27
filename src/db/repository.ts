@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm'
-import { MEMBERS_MAX, allSealed } from '../core/game'
+import { MEMBERS_MAX, MEMBERS_MIN, allSealed } from '../core/game'
 import type { GroupMember, GroupRecord, EntryRecord, GameRecord } from '../core/game'
 import type { SealedListsDatabase } from './connection'
 import { groupMembers, groups, emailPreferences, entries, games, user } from './schema'
@@ -57,7 +57,7 @@ export class Repository {
     return this.database.transaction((tx) => {
       const roster = this.membersOf(input.groupId, tx)
       if (!roster.some((member) => member.userId === input.userId)) return 'unknown'
-      if (roster.length <= 2) return 'too-few'
+      if (roster.length <= MEMBERS_MIN) return 'too-few'
       const collecting = tx
         .select()
         .from(games)
@@ -104,6 +104,15 @@ export class Repository {
 
   entriesOf(gameId: string): EntryRecord[] {
     return this.entriesQuery(gameId)
+  }
+
+  /** Throws the game away, lists and all: `entries` cascades off `games`. */
+  deleteGame(input: { groupId: string; gameId: string }): 'deleted' | 'unknown' {
+    const removed = this.database
+      .delete(games)
+      .where(and(eq(games.groupId, input.groupId), eq(games.id, input.gameId)))
+      .run()
+    return removed.changes > 0 ? 'deleted' : 'unknown'
   }
 
   /** Refuses a second concurrent game so a group always has exactly one current game. */

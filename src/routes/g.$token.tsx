@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils'
 import { LIST_MAX_LENGTH, PLAYERS_MIN, canRemoveMember } from '../core/game'
 import type { EntryView, GameView, GroupMember, GroupView } from '../core/game'
 import { ConfirmButton } from '../client/components/ConfirmButton'
+import { DeleteGameButton } from '../client/components/DeleteGameButton'
 import { RevealedLists } from '../client/components/RevealedLists'
 import { groupQuery, meQuery } from '../client/queries'
 import { errorMessage } from '../client/queryClient'
@@ -165,17 +166,20 @@ function CurrentGame({ token, game, members, viewerId }: { token: string; game: 
     <section>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-2xl">Game {game.number}</h2>
-        {revealed ? (
-          <Badge className="gap-2 border-brass/50 bg-brass/10 text-brass" variant="outline">
-            <span className="stamp-revealed" aria-hidden="true" />
-            All lists open
-          </Badge>
-        ) : (
-          <Badge variant="outline" className="gap-2">
-            <span className="stamp-waiting" aria-hidden="true" />
-            {game.sealed} of {game.total} sealed
-          </Badge>
-        )}
+        <div className="flex items-center gap-2">
+          {revealed ? (
+            <Badge className="gap-2 border-brass/50 bg-brass/10 text-brass" variant="outline">
+              <span className="stamp-revealed" aria-hidden="true" />
+              All lists open
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="gap-2">
+              <span className="stamp-waiting" aria-hidden="true" />
+              {game.sealed} of {game.total} sealed
+            </Badge>
+          )}
+          <DeleteGameButton token={token} gameId={game.id} number={game.number} />
+        </div>
       </div>
 
       {revealed ? (

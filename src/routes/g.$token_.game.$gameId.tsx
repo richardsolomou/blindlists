@@ -1,8 +1,9 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { Link, createFileRoute, notFound } from '@tanstack/react-router'
+import { Link, createFileRoute, notFound, useNavigate } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { DeleteGameButton } from '../client/components/DeleteGameButton'
 import { RevealedLists } from '../client/components/RevealedLists'
 import { gameQuery } from '../client/queries'
 
@@ -18,6 +19,7 @@ export const Route = createFileRoute('/g/$token_/game/$gameId')({
 function GamePage() {
   const { token, gameId } = Route.useParams()
   const { data: game } = useSuspenseQuery(gameQuery(token, gameId))
+  const navigate = useNavigate()
   if (!game) throw notFound()
 
   return (
@@ -26,7 +28,15 @@ function GamePage() {
         <ArrowLeft />
         Back
       </Link>
-      <h1 className="mb-6 text-3xl">Game {game.number}</h1>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-3xl">Game {game.number}</h1>
+        <DeleteGameButton
+          token={token}
+          gameId={gameId}
+          number={game.number}
+          onDeleted={() => void navigate({ to: '/g/$token', params: { token } })}
+        />
+      </div>
       {game.status === 'revealed' ? (
         <RevealedLists game={game} />
       ) : (

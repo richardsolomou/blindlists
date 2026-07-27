@@ -321,10 +321,15 @@ describe('removeMember', () => {
     expect(service.myGroups('dan')).toEqual([])
   })
 
-  it('refuses to leave the group with fewer than two players', () => {
+  it('lets the second-to-last player leave, so a pair is never stuck together', () => {
     const { token } = groupWithGame()
     service.removeMember(token, 'alex', 'dan')
-    expect(rejection(() => service.removeMember(token, 'alex', 'rich'))).toBe(409)
+    expect(service.removeMember(token, 'rich', 'rich').members.map((member) => member.name)).toEqual(['Alex'])
+  })
+
+  it('refuses to empty the group', () => {
+    const { token } = service.createGroup('alex', 'Tuesday night')
+    expect(rejection(() => service.removeMember(token, 'alex', 'alex'))).toBe(409)
   })
 
   it('refuses someone who is not in the group', () => {
@@ -426,5 +431,92 @@ describe('live updates', () => {
   it('refuses a link holder who has not joined', () => {
     const { token } = groupWithGame()
     expect(rejection(() => service.memberGroupId(token, 'sam'))).toBe(403)
+  })
+})
+
+describe('deleteGame', () => {
+  it('takes a revealed game out of history', () => {
+    const { token } = groupWithGame()
+    for (const id of ['alex', 'rich', 'dan']) service.sealList(token, id, `${id} list`)
+    const gameId = service.groupView(token, 'alex').currentGame!.id
+    expect(service.deleteGame(token, 'alex', gameId).currentGame).toBeNull()
+  })
+
+  it('takes its lists with it', () => {
+    const { token } = groupWithGame()
+    for (const id of ['alex', 'rich', 'dan']) service.sealList(token, id, `${id} list`)
+    const gameId = service.groupView(token, 'alex').currentGame!.id
+    service.deleteGame(token, 'alex', gameId)
+    expect(rejection(() => service.gameView(token, gameId, 'alex'))).toBe(404)
+  })
+
+  it('frees the group to make another game, which is the way out of one nobody will finish', () => {
+    const { token } = groupWithGame()
+    const gameId = service.groupView(token, 'alex').currentGame!.id
+    service.deleteGame(token, 'alex', gameId)
+    expect(service.startGame(token, 'alex', ['alex', 'rich']).currentGame?.entries).toHaveLength(2)
+  })
+
+  it('numbers the next game from what is left, so deleting the newest leaves no gap', () => {
+    const { token } = groupWithGame()
+    const first = service.groupView(token, 'alex').currentGame!.id
+    service.deleteGame(token, 'alex', first)
+    expect(service.startGame(token, 'alex', ['alex', 'rich']).currentGame?.number).toBe(1)
+  })
+
+  it('never reuses the number of a game that is still there', () => {
+    const { token } = groupWithGame()
+    for (const id of ['alex', 'rich', 'dan']) service.sealList(token, id, `${id} list`)
+    service.startGame(token, 'alex', ['alex', 'rich'])
+    for (const id of ['alex', 'rich']) service.sealList(token, id, `${id} list`)
+    const second = service.groupView(token, 'alex').currentGame!.id
+    service.deleteGame(token, 'alex', second)
+    service.startGame(token, 'alex', ['alex', 'rich'])
+    const view = service.groupView(token, 'alex')
+    expect({ current: view.currentGame?.number, past: view.pastGames.map((game) => game.number) }).toEqual({ current: 2, past: [1] })
+  })
+
+  it('leaves the other games alone', () => {
+    const { token } = groupWithGame()
+    for (const id of ['alex', 'rich', 'dan']) service.sealList(token, id, `${id} list`)
+    const first = service.groupView(token, 'alex').currentGame!.id
+    service.startGame(token, 'alex', ['alex', 'rich'])
+    const second = service.groupView(token, 'alex').currentGame!.id
+    service.deleteGame(token, 'alex', second)
+    expect(service.gameView(token, first, 'alex').number).toBe(1)
+  })
+
+  it('refuses someone who is not in the group', () => {
+    const { token } = groupWithGame()
+    const gameId = service.groupView(token, 'alex').currentGame!.id
+    expect(rejection(() => service.deleteGame(token, 'sam', gameId))).toBe(403)
+  })
+
+  it('refuses a game from another group', () => {
+    const { token } = groupWithGame()
+    const other = service.createGroup('sam', 'Saturday')
+    service.joinGroup(other.token, 'alex')
+    service.startGame(other.token, 'sam', ['sam', 'alex'])
+    const theirs = service.groupView(other.token, 'sam').currentGame!.id
+    expect(rejection(() => service.deleteGame(token, 'alex', theirs))).toBe(404)
+  })
+
+  it('announces the change so open pages catch up', () => {
+    const { token } = groupWithGame()
+    const gameId = service.groupView(token, 'alex').currentGame!.id
+    changed = []
+    service.deleteGame(token, 'alex', gameId)
+    expect(changed).toHaveLength(1)
+  })
+})
+
+describe('a link that points at nothing', () => {
+  it('is not reported as a group', () => {
+    expect(service.hasGroup('not-a-token')).toBe(false)
+  })
+
+  it('is reported when it is real', () => {
+    const { token } = service.createGroup('alex', 'Tuesday night')
+    expect(service.hasGroup(token)).toBe(true)
   })
 })

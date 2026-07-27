@@ -35,6 +35,11 @@ export class SealedListsService {
     })
   }
 
+  /** Whether a link points at a group at all, so a dead one 404s instead of promising an invitation. */
+  hasGroup(token: string) {
+    return this.repository.groupByToken(token) !== undefined
+  }
+
   groupView(token: string, userId: string): GroupView {
     const { group, members } = this.group(token)
     const isMember = members.some((member) => member.userId === userId)
@@ -70,7 +75,7 @@ export class SealedListsService {
     const collecting = this.repository.activeGame(group.id)
     const result = this.repository.removeMember({ groupId: group.id, userId: targetUserId, now: this.clock() })
     if (result === 'unknown') throw notFound()
-    if (result === 'too-few') throw new Response(`a group keeps at least ${PLAYERS_MIN} players`, { status: 409 })
+    if (result === 'too-few') throw new Response('a group keeps at least one player', { status: 409 })
     if (collecting) this.notifyIfRevealed(group.id, collecting.id)
     this.events?.publish(group.id)
     return this.groupView(token, userId)
@@ -142,6 +147,18 @@ export class SealedListsService {
     if (result === 'sealed') throw new Response('that player has already sealed a list', { status: 409 })
     if (result === 'too-few') throw new Response(`a game needs at least ${PLAYERS_MIN} players`, { status: 409 })
     this.notifyIfRevealed(group.id, game.id)
+    this.events?.publish(group.id)
+    return this.groupView(token, userId)
+  }
+
+  /**
+   * Throws a game away for the whole group. Allowed while it is still
+   * collecting, which is the only way out of a game nobody is going to finish,
+   * and after the reveal, so history is the group's to keep or clear.
+   */
+  deleteGame(token: string, userId: string, gameId: string): GroupView {
+    const { group } = this.requireMembership(token, userId)
+    if (this.repository.deleteGame({ groupId: group.id, gameId }) === 'unknown') throw notFound()
     this.events?.publish(group.id)
     return this.groupView(token, userId)
   }

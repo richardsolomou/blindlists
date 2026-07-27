@@ -21,7 +21,9 @@ Two emails per game, if the instance can send them and you have not turned them 
 
 While a game is still collecting you can change who is in it: join a game you were left out of, add anyone from the group, or drop a no-show — which reveals the game if everyone else is already in. Someone who has sealed cannot be dropped, and a revealed game can never be edited.
 
-Players come and go from the group too. Anyone with the link can join; anyone in the group can remove a member or leave themselves. Removal takes them off the roster and out of a game still collecting, but leaves their lists in games that already revealed: history stays true. A group always keeps at least two players.
+Players come and go from the group too. Anyone with the link can join; anyone in the group can remove a member or leave themselves. Removal takes them off the roster and out of a game still collecting, but leaves their lists in games that already revealed: history stays true. The last player cannot leave, since that would strand the group with nobody in it.
+
+Anyone in the group can delete a game, before or after the reveal, which throws away every list in it for everybody. Delete a game still collecting to call one off — that is the only way to abandon a game nobody is going to finish, because a group runs one at a time. Delete a finished one to clear it out of history. Your name is on the account page and changing it changes what the group sees next to your lists, including in games already played.
 
 There is nothing to administer: no roles, no owner, no instance settings. Anyone in a group can do anything to it.
 

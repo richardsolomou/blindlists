@@ -63,8 +63,10 @@ export const group = createServerFn({ method: 'GET' })
   .handler(({ data }) =>
     rpc(async () => {
       const viewer = await currentUser()
-      // The page shows a sign-in prompt rather than 401ing someone who followed a link.
-      if (!viewer) return 'signed-out' as const
+      // The page shows a sign-in prompt rather than 401ing someone who followed a
+      // link — but only for a link that leads somewhere, so a dead one 404s
+      // instead of inviting them to a group that does not exist.
+      if (!viewer) return app().service.hasGroup(data.token) ? ('signed-out' as const) : null
       return orNull(() => app().service.groupView(data.token, viewer.id))
     }),
   )
@@ -95,6 +97,16 @@ export const startGame = createServerFn({ method: 'POST' })
       requireMutationOrigin()
       const viewer = await requireUser()
       return app().service.startGame(data.token, viewer.id, data.userIds)
+    }),
+  )
+
+export const deleteGame = createServerFn({ method: 'POST' })
+  .validator(gameSchema)
+  .handler(({ data }) =>
+    rpc(async () => {
+      requireMutationOrigin()
+      const viewer = await requireUser()
+      return app().service.deleteGame(data.token, viewer.id, data.gameId)
     }),
   )
 

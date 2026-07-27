@@ -1,4 +1,5 @@
 export const PLAYERS_MIN = 2
+export const MEMBERS_MIN = 1
 export const MEMBERS_MAX = 16
 export const GROUP_NAME_MAX_LENGTH = 60
 export const NAME_MAX_LENGTH = 40
@@ -77,8 +78,11 @@ export type GroupSummary = {
   needsList: boolean
 }
 
-/** A group always keeps enough people to field a game. */
-export const canRemoveMember = (members: number) => members > PLAYERS_MIN
+/**
+ * A group keeps one person in it, no more than that. Requiring two would trap
+ * the pair in a two-player group, which is the most common size there is.
+ */
+export const canRemoveMember = (members: number) => members > MEMBERS_MIN
 
 export function allSealed(entries: readonly EntryRecord[]) {
   return entries.length > 0 && entries.every((entry) => entry.list !== null)
