@@ -1,9 +1,9 @@
 import { useMutation } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
-import { NAME_MAX_LENGTH, PLAYERS_MAX, PLAYERS_MIN, RETENTION_DAYS } from '../core/game'
+import { MEMBERS_MAX, MEMBERS_MIN, NAME_MAX_LENGTH, RETENTION_DAYS } from '../core/game'
 import { errorMessage } from '../client/queryClient'
-import { createGame } from '../server/fns'
+import { createCrew } from '../server/fns'
 
 export const Route = createFileRoute('/')({ component: Home })
 
@@ -19,44 +19,44 @@ function Home() {
   const nextSeatKey = useRef(seats.length)
 
   const create = useMutation({
-    mutationFn: (input: { name: string; playerNames: string[] }) => createGame({ data: input }),
-    onSuccess: ({ hostToken }) => navigate({ to: '/host/$token', params: { token: hostToken } }),
+    mutationFn: (input: { name: string; memberNames: string[] }) => createCrew({ data: input }),
+    onSuccess: ({ token }) => navigate({ to: '/c/$token', params: { token } }),
   })
 
-  const playerNames = seats.map((seat) => seat.name.trim()).filter(Boolean)
-  const ready = name.trim().length > 0 && playerNames.length === seats.length
+  const memberNames = seats.map((seat) => seat.name.trim()).filter(Boolean)
+  const ready = name.trim().length > 0 && memberNames.length === seats.length
 
   return (
     <main>
       <h1 className="text-4xl">Warhammer 40,000 lists, submitted blind</h1>
       <p className="mt-3 mb-9 max-w-lg text-faint">
-        Every player pastes their army list hidden. When the last one lands, all of them are revealed at once and locked — nobody reads
-        yours first and tailors a detachment to beat it.
+        Everyone pastes their army list hidden. When the last one lands, all of them are revealed at once and locked — nobody reads yours
+        first and tailors a detachment to beat it.
       </p>
 
       <form
         className="space-y-5"
         onSubmit={(event) => {
           event.preventDefault()
-          create.mutate({ name: name.trim(), playerNames })
+          create.mutate({ name: name.trim(), memberNames })
         }}
       >
         <div>
-          <label className="label" htmlFor="game-name">
-            Game
+          <label className="label" htmlFor="crew-name">
+            Your crew
           </label>
           <input
-            id="game-name"
+            id="crew-name"
             className="field"
             value={name}
-            maxLength={80}
-            placeholder="Friday night, 2000 pts Strike Force"
+            maxLength={60}
+            placeholder="Tuesday night at Alex's"
             onChange={(event) => setName(event.target.value)}
           />
         </div>
 
         <fieldset>
-          <legend className="label">Players</legend>
+          <legend className="label">Who plays</legend>
           <div className="space-y-2">
             {seats.map((seat, index) => (
               <div key={seat.key} className="flex gap-2">
@@ -70,7 +70,7 @@ function Home() {
                     setSeats((current) => current.map((entry) => (entry.key === seat.key ? { ...entry, name: event.target.value } : entry)))
                   }
                 />
-                {seats.length > PLAYERS_MIN && (
+                {seats.length > MEMBERS_MIN && (
                   <button
                     type="button"
                     className="button-quiet"
@@ -83,7 +83,7 @@ function Home() {
               </div>
             ))}
           </div>
-          {seats.length < PLAYERS_MAX && (
+          {seats.length < MEMBERS_MAX && (
             <button
               type="button"
               className="button-quiet mt-2"
@@ -98,13 +98,14 @@ function Home() {
         </fieldset>
 
         <button type="submit" className="button-primary" disabled={!ready || create.isPending}>
-          {create.isPending ? 'Creating…' : 'Create game'}
+          {create.isPending ? 'Creating…' : 'Create crew'}
         </button>
         {create.isError && <p className="text-sm text-seal">{errorMessage(create.error)}</p>}
       </form>
 
       <p className="mt-9 text-sm text-faint">
-        You get one private link per player to send them. No accounts, and the whole game is deleted {RETENTION_DAYS} days later.
+        You get one link for the whole crew. Send it to them once, everybody bookmarks it, and every future game is waiting there — no
+        accounts, no passwords, no links to hand out again. Games are deleted {RETENTION_DAYS} days after they start.
       </p>
     </main>
   )

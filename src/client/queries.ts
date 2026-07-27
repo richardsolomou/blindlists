@@ -1,21 +1,20 @@
 import { queryOptions } from '@tanstack/react-query'
-import type { GameView } from '../core/game'
-import { hostGame, playerGame } from '../server/fns'
+import type { CrewView } from '../core/game'
+import { crew, game } from '../server/fns'
 
-// While lists are still coming in the page polls, so everyone sees the reveal
-// land without refreshing; a revealed game never changes again.
-const collecting = (query: { state: { data?: GameView } }) => (query.state.data?.status === 'collecting' ? 5000 : false)
+// While a game is collecting the page polls, so everyone sees the reveal land
+// without refreshing; a revealed game never changes again.
+const collecting = (query: { state: { data?: CrewView } }) => (query.state.data?.currentGame?.status === 'collecting' ? 5000 : false)
 
-export const hostGameQuery = (token: string) =>
+export const crewQuery = (token: string) =>
   queryOptions({
-    queryKey: ['host-game', token],
-    queryFn: () => hostGame({ data: { token } }),
+    queryKey: ['crew', token],
+    queryFn: () => crew({ data: { token } }),
     refetchInterval: collecting,
   })
 
-export const playerGameQuery = (token: string) =>
+export const gameQuery = (token: string, gameId: string) =>
   queryOptions({
-    queryKey: ['player-game', token],
-    queryFn: () => playerGame({ data: { token } }),
-    refetchInterval: collecting,
+    queryKey: ['game', token, gameId],
+    queryFn: () => game({ data: { token, gameId } }),
   })

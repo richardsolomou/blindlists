@@ -1,98 +1,102 @@
 import { describe, expect, it } from 'vitest'
 import { allSealed, duplicateName, gameView, normalizeList, shortFingerprint } from './game'
-import type { GameRecord, PlayerRecord } from './game'
+import type { EntryRecord, GameRecord } from './game'
 
 const hash = (list: string) => `hash(${list})`
 
-const game = (revealedAt: number | null = null): GameRecord => ({ id: 'game1', name: 'Friday night', createdAt: 1000, revealedAt })
+const game = (revealedAt: number | null = null): GameRecord => ({ id: 'game1', number: 3, createdAt: 1000, revealedAt })
 
-const player = (id: string, sealed: boolean): PlayerRecord => ({
-  id,
+const entry = (id: string, sealed: boolean): EntryRecord => ({
+  memberId: id,
   name: id,
   seat: 1,
-  token: `${id}-token`,
   list: sealed ? `${id} list` : null,
 })
 
 describe('allSealed', () => {
   it('is false while any player is outstanding', () => {
-    expect(allSealed([player('alex', true), player('rich', false)])).toBe(false)
+    expect(allSealed([entry('alex', true), entry('rich', false)])).toBe(false)
   })
 
   it('is true when every player has sealed', () => {
-    expect(allSealed([player('alex', true), player('rich', true)])).toBe(true)
+    expect(allSealed([entry('alex', true), entry('rich', true)])).toBe(true)
   })
 
-  it('is false for a game with no players', () => {
+  it('is false for a game with nobody in it', () => {
     expect(allSealed([])).toBe(false)
   })
 })
 
 describe('gameView while collecting', () => {
-  const players = [player('alex', true), player('rich', true)]
+  const entries = [entry('alex', true), entry('rich', true)]
 
-  it('hides another player’s list from a player', () => {
-    const view = gameView(game(), players, { kind: 'player', playerId: 'rich' }, hash)
-    expect(view.players.find((entry) => entry.id === 'alex')?.list).toBeNull()
+  it('hides another player’s list', () => {
+    const view = gameView(game(), entries, 'rich', hash)
+    expect(view.entries.find((candidate) => candidate.memberId === 'alex')?.list).toBeNull()
   })
 
-  it('hides another player’s fingerprint from a player', () => {
-    const view = gameView(game(), players, { kind: 'player', playerId: 'rich' }, hash)
-    expect(view.players.find((entry) => entry.id === 'alex')?.listHash).toBeNull()
+  it('hides another player’s fingerprint', () => {
+    const view = gameView(game(), entries, 'rich', hash)
+    expect(view.entries.find((candidate) => candidate.memberId === 'alex')?.listHash).toBeNull()
   })
 
   it('still reports that the other player has sealed', () => {
-    const view = gameView(game(), players, { kind: 'player', playerId: 'rich' }, hash)
-    expect(view.players.find((entry) => entry.id === 'alex')?.sealed).toBe(true)
+    const view = gameView(game(), entries, 'rich', hash)
+    expect(view.entries.find((candidate) => candidate.memberId === 'alex')?.sealed).toBe(true)
   })
 
   it('shows a player their own list back', () => {
-    const view = gameView(game(), players, { kind: 'player', playerId: 'rich' }, hash)
-    expect(view.players.find((entry) => entry.id === 'rich')?.list).toBe('rich list')
+    const view = gameView(game(), entries, 'rich', hash)
+    expect(view.entries.find((candidate) => candidate.memberId === 'rich')?.list).toBe('rich list')
   })
 
-  it('hides every list from the host', () => {
-    const view = gameView(game(), players, { kind: 'host' }, hash)
-    expect(view.players.map((entry) => entry.list)).toEqual([null, null])
+  it('hides every list from someone who is not playing', () => {
+    const view = gameView(game(), entries, 'dan', hash)
+    expect(view.entries.map((candidate) => candidate.list)).toEqual([null, null])
+  })
+
+  it('hides every list from a visitor who has not tapped a name', () => {
+    const view = gameView(game(), entries, null, hash)
+    expect(view.entries.map((candidate) => candidate.list)).toEqual([null, null])
   })
 
   it('counts how many lists are in', () => {
-    const view = gameView(game(), [player('alex', true), player('rich', false)], { kind: 'host' }, hash)
+    const view = gameView(game(), [entry('alex', true), entry('rich', false)], 'alex', hash)
     expect(view.sealed).toBe(1)
   })
 
-  it('hands the host every invite link to share', () => {
-    const view = gameView(game(), players, { kind: 'host' }, hash)
-    expect(view.players.map((entry) => entry.inviteToken)).toEqual(['alex-token', 'rich-token'])
+  it('reports the viewer as unsealed when they have not submitted', () => {
+    const view = gameView(game(), [entry('alex', true), entry('rich', false)], 'rich', hash)
+    expect(view.viewerSealed).toBe(false)
   })
 
-  it('never hands a player another player’s invite link', () => {
-    const view = gameView(game(), players, { kind: 'player', playerId: 'rich' }, hash)
-    expect(view.players.map((entry) => entry.inviteToken)).toEqual([null, null])
+  it('reports no viewer entry for someone sitting the game out', () => {
+    const view = gameView(game(), entries, 'dan', hash)
+    expect(view.viewerSealed).toBeNull()
   })
 })
 
 describe('gameView once revealed', () => {
-  const players = [player('alex', true), player('rich', true)]
+  const entries = [entry('alex', true), entry('rich', true)]
 
   it('shows every list to a player', () => {
-    const view = gameView(game(9), players, { kind: 'player', playerId: 'rich' }, hash)
-    expect(view.players.map((entry) => entry.list)).toEqual(['alex list', 'rich list'])
+    const view = gameView(game(9), entries, 'rich', hash)
+    expect(view.entries.map((candidate) => candidate.list)).toEqual(['alex list', 'rich list'])
   })
 
-  it('shows every list to the host', () => {
-    const view = gameView(game(9), players, { kind: 'host' }, hash)
-    expect(view.players.map((entry) => entry.list)).toEqual(['alex list', 'rich list'])
+  it('shows every list to someone who was not playing', () => {
+    const view = gameView(game(9), entries, 'dan', hash)
+    expect(view.entries.map((candidate) => candidate.list)).toEqual(['alex list', 'rich list'])
   })
 
   it('fingerprints each revealed list', () => {
-    const view = gameView(game(9), players, { kind: 'host' }, hash)
-    expect(view.players.map((entry) => entry.listHash)).toEqual(['hash(alex list)', 'hash(rich list)'])
+    const view = gameView(game(9), entries, null, hash)
+    expect(view.entries.map((candidate) => candidate.listHash)).toEqual(['hash(alex list)', 'hash(rich list)'])
   })
 
-  it('marks which player the viewer is', () => {
-    const view = gameView(game(9), players, { kind: 'player', playerId: 'rich' }, hash)
-    expect(view.players.filter((entry) => entry.isViewer).map((entry) => entry.id)).toEqual(['rich'])
+  it('marks which entry belongs to the viewer', () => {
+    const view = gameView(game(9), entries, 'rich', hash)
+    expect(view.entries.filter((candidate) => candidate.isViewer).map((candidate) => candidate.memberId)).toEqual(['rich'])
   })
 })
 

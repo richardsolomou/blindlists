@@ -1,30 +1,57 @@
 import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core'
 
+/** A group of friends who play together. Its token is the durable link they share once. */
+export const crews = sqliteTable(
+  'crews',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    token: text('token').notNull(),
+    createdAt: integer('created_at').notNull(),
+  },
+  (table) => [uniqueIndex('crews_token_unique').on(table.token)],
+)
+
+export const members = sqliteTable(
+  'members',
+  {
+    id: text('id').primaryKey(),
+    crewId: text('crew_id')
+      .notNull()
+      .references(() => crews.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    seat: integer('seat').notNull(),
+  },
+  (table) => [index('members_crew_id_index').on(table.crewId)],
+)
+
 export const games = sqliteTable(
   'games',
   {
     id: text('id').primaryKey(),
-    name: text('name').notNull(),
-    hostToken: text('host_token').notNull(),
+    crewId: text('crew_id')
+      .notNull()
+      .references(() => crews.id, { onDelete: 'cascade' }),
+    number: integer('number').notNull(),
     createdAt: integer('created_at').notNull(),
     revealedAt: integer('revealed_at'),
   },
-  (table) => [uniqueIndex('games_host_token_unique').on(table.hostToken), index('games_created_at_index').on(table.createdAt)],
+  (table) => [index('games_crew_id_index').on(table.crewId), index('games_created_at_index').on(table.createdAt)],
 )
 
-export const players = sqliteTable(
-  'players',
+/** One player's slot in one game. The list stays null until they seal it. */
+export const entries = sqliteTable(
+  'entries',
   {
-    id: text('id').primaryKey(),
     gameId: text('game_id')
       .notNull()
       .references(() => games.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
-    seat: integer('seat').notNull(),
-    token: text('token').notNull(),
+    memberId: text('member_id')
+      .notNull()
+      .references(() => members.id, { onDelete: 'cascade' }),
     list: text('list'),
   },
-  (table) => [uniqueIndex('players_token_unique').on(table.token), index('players_game_id_index').on(table.gameId)],
+  (table) => [uniqueIndex('entries_game_member_unique').on(table.gameId, table.memberId)],
 )
 
-export const schema = { games, players }
+export const schema = { crews, members, games, entries }

@@ -1,11 +1,11 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "6677baa6-d54d-478b-9dfe-9f0bf6a8a2ac",
+  "id": "369d6147-81fd-4209-9367-e394087e6b1c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
-    "games": {
-      "name": "games",
+    "crews": {
+      "name": "crews",
       "columns": {
         "id": {
           "name": "id",
@@ -21,9 +21,109 @@
           "notNull": true,
           "autoincrement": false
         },
-        "host_token": {
-          "name": "host_token",
+        "token": {
+          "name": "token",
           "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "crews_token_unique": {
+          "name": "crews_token_unique",
+          "columns": ["token"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "entries": {
+      "name": "entries",
+      "columns": {
+        "game_id": {
+          "name": "game_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "member_id": {
+          "name": "member_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "list": {
+          "name": "list",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "entries_game_member_unique": {
+          "name": "entries_game_member_unique",
+          "columns": ["game_id", "member_id"],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "entries_game_id_games_id_fk": {
+          "name": "entries_game_id_games_id_fk",
+          "tableFrom": "entries",
+          "tableTo": "games",
+          "columnsFrom": ["game_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "entries_member_id_members_id_fk": {
+          "name": "entries_member_id_members_id_fk",
+          "tableFrom": "entries",
+          "tableTo": "members",
+          "columnsFrom": ["member_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "games": {
+      "name": "games",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "crew_id": {
+          "name": "crew_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "number": {
+          "name": "number",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -44,10 +144,10 @@
         }
       },
       "indexes": {
-        "games_host_token_unique": {
-          "name": "games_host_token_unique",
-          "columns": ["host_token"],
-          "isUnique": true
+        "games_crew_id_index": {
+          "name": "games_crew_id_index",
+          "columns": ["crew_id"],
+          "isUnique": false
         },
         "games_created_at_index": {
           "name": "games_created_at_index",
@@ -55,13 +155,23 @@
           "isUnique": false
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "games_crew_id_crews_id_fk": {
+          "name": "games_crew_id_crews_id_fk",
+          "tableFrom": "games",
+          "tableTo": "crews",
+          "columnsFrom": ["crew_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "players": {
-      "name": "players",
+    "members": {
+      "name": "members",
       "columns": {
         "id": {
           "name": "id",
@@ -70,8 +180,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "game_id": {
-          "name": "game_id",
+        "crew_id": {
+          "name": "crew_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -90,40 +200,21 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "token": {
-          "name": "token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "list": {
-          "name": "list",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
         }
       },
       "indexes": {
-        "players_token_unique": {
-          "name": "players_token_unique",
-          "columns": ["token"],
-          "isUnique": true
-        },
-        "players_game_id_index": {
-          "name": "players_game_id_index",
-          "columns": ["game_id"],
+        "members_crew_id_index": {
+          "name": "members_crew_id_index",
+          "columns": ["crew_id"],
           "isUnique": false
         }
       },
       "foreignKeys": {
-        "players_game_id_games_id_fk": {
-          "name": "players_game_id_games_id_fk",
-          "tableFrom": "players",
-          "tableTo": "games",
-          "columnsFrom": ["game_id"],
+        "members_crew_id_crews_id_fk": {
+          "name": "members_crew_id_crews_id_fk",
+          "tableFrom": "members",
+          "tableTo": "crews",
+          "columnsFrom": ["crew_id"],
           "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
