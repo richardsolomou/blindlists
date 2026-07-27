@@ -1,5 +1,5 @@
 services:
-  sealedlists:
+  sealed-lists:
     build:
       context: .
     restart: unless-stopped
@@ -25,4 +25,4 @@ services:
       DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
     volumes:
       # The SQLite database holding every game and sealed list.
-      - ${DATA_HOST_DIR:-./sealedlists-data}:/data
+      - ${DATA_HOST_DIR:-./sealed-lists-data}:/data

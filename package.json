@@ -1,14 +1,14 @@
 {
-  "name": "sealedlists",
+  "name": "sealed-lists",
   "version": "0.1.0",
   "private": true,
   "description": "Sealed army list escrow: everyone submits hidden, nothing is revealed until the last list lands, and revealed lists are locked.",
-  "homepage": "https://sealedlists.ras.sh",
-  "bugs": "https://github.com/richardsolomou/sealedlists/issues",
+  "homepage": "https://sealed-lists.ras.sh",
+  "bugs": "https://github.com/richardsolomou/sealed-lists/issues",
   "license": "AGPL-3.0-only",
   "repository": {
     "type": "git",
-    "url": "https://github.com/richardsolomou/sealedlists.git"
+    "url": "https://github.com/richardsolomou/sealed-lists.git"
   },
   "type": "module",
   "scripts": {

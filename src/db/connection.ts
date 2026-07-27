@@ -29,5 +29,5 @@ export function closeDatabase(database: SealedListsDatabase) {
 }
 
 export function databasePath(dataDirectory = process.env.DATA_DIR ?? '/data') {
-  return path.join(path.resolve(dataDirectory), 'sealedlists.sqlite')
+  return path.join(path.resolve(dataDirectory), 'sealed-lists.sqlite')
 }

@@ -54,7 +54,7 @@ function RootComponent() {
           </div>
           <footer className="border-t border-edge py-6 text-xs text-faint">
             <a
-              href="https://github.com/richardsolomou/sealedlists"
+              href="https://github.com/richardsolomou/sealed-lists"
               className="underline decoration-edge underline-offset-4 hover:text-brass"
             >
               Source
