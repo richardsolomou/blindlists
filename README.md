@@ -9,7 +9,7 @@ Paste the text your list builder already exports — the Warhammer 40,000 app, N
 Everyone makes an account — email and password, or one tap with Google or Discord where the instance has them configured. You set up a **group** — its name — and get a single link. Send that to the group once; they sign in and join, and every game after that is waiting at the same place for all of you.
 
 1. Sign in. Your name is what the rest of the group sees, and your lists follow the account onto any device.
-2. Anyone in the group asks everyone for a list and picks who is playing tonight.
+2. Anyone in the group makes a game and picks who is playing tonight.
 3. Each player pastes their army list and seals it. They can replace it as long as anyone is still outstanding, and nobody can see another list while the game is collecting.
 4. When the last list is sealed, every list is revealed together and permanently locked.
 

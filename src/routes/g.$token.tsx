@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { Link, createFileRoute, notFound } from '@tanstack/react-router'
-import { ArrowLeftRight, Check, Copy, Plus, Users } from 'lucide-react'
+import { Check, Copy, Plus, Users } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -75,7 +75,7 @@ function GroupPage() {
           <div className="flex flex-wrap items-center gap-2">
             <PlayersDialog token={token} group={group} viewerId={viewer.id} />
             {/* Only ever offered once the last lot is open, so it can never read as an action on the game on screen. */}
-            {group.canStartGame && group.currentGame && <SwapListsDialog token={token} members={group.members} />}
+            {group.canStartGame && group.currentGame && <NewGameDialog token={token} members={group.members} />}
           </div>
         )}
       </div>
@@ -85,7 +85,7 @@ function GroupPage() {
           {group.currentGame ? (
             <CurrentGame token={token} game={group.currentGame} members={group.members} viewerId={viewer.id} />
           ) : (
-            <NoLists token={token} group={group} />
+            <NoGames token={token} group={group} />
           )}
           <History token={token} group={group} />
         </div>
@@ -130,22 +130,22 @@ function JoinGroup({ token, group }: { token: string; group: GroupView }) {
   )
 }
 
-/** A group with no lists in it yet: say what this place is for, then offer the one thing to do. */
-function NoLists({ token, group }: { token: string; group: GroupView }) {
+/** A group with nothing in it yet: say what this place is for, then offer the one thing to do. */
+function NoGames({ token, group }: { token: string; group: GroupView }) {
   const enoughPlayers = group.members.length >= PLAYERS_MIN
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-display text-lg">No lists yet</CardTitle>
+        <CardTitle className="font-display text-lg">No games yet</CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
         <p className="max-w-prose text-sm text-faint">
-          When you are about to play, everyone here pastes the list they are bringing. Nobody sees anyone else&rsquo;s until the last one is
-          in, then they all open at once and lock.
+          Make a game when you are about to play. Everyone in it pastes the list they are bringing, and nobody sees anyone else&rsquo;s
+          until the last one is in — then they all open at once and lock.
         </p>
         {enoughPlayers ? (
-          <SwapListsDialog token={token} members={group.members} />
+          <NewGameDialog token={token} members={group.members} />
         ) : (
           <div className="flex flex-wrap items-center gap-4">
             <CopyInviteButton token={token} />
@@ -369,10 +369,10 @@ function Initials({ name }: { name: string }) {
 }
 
 /**
- * Asks everyone for a list. Deliberately not called "start a game": the app
- * never starts anything you play, it collects lists and opens them together.
+ * Opens the next game and asks the players in it for a list. The dialog carries
+ * the explanation: the app collects lists, it does not run anything you play.
  */
-function SwapListsDialog({ token, members }: { token: string; members: GroupMember[] }) {
+function NewGameDialog({ token, members }: { token: string; members: GroupMember[] }) {
   const [open, setOpen] = useState(false)
   const [playing, setPlaying] = useState<string[]>(() => members.map((member) => member.userId))
   const start = useGroupMutation(token, (userIds: string[]) => startGame({ data: { token, userIds } }), 'Everyone can paste a list now.')
@@ -389,14 +389,14 @@ function SwapListsDialog({ token, members }: { token: string; members: GroupMemb
       <DialogTrigger
         render={
           <Button>
-            <ArrowLeftRight />
-            Swap lists
+            <Plus />
+            New game
           </Button>
         }
       />
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="font-display">Swap lists</DialogTitle>
+          <DialogTitle className="font-display">New game</DialogTitle>
           <DialogDescription>
             Everyone you pick pastes a list. They stay hidden until the last one is in, then they all open at once and lock.
           </DialogDescription>
@@ -430,7 +430,7 @@ function SwapListsDialog({ token, members }: { token: string; members: GroupMemb
             disabled={playing.length < PLAYERS_MIN || start.isPending}
             onClick={() => start.mutate(playing, { onSuccess: () => setOpen(false) })}
           >
-            {start.isPending ? 'Starting…' : 'Swap lists'}
+            {start.isPending ? 'Creating…' : 'Create game'}
           </Button>
         </DialogFooter>
       </DialogContent>
