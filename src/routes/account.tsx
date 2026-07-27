@@ -54,7 +54,7 @@ function AccountPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="font-display text-base">Email</CardTitle>
+          <CardTitle className="font-display text-lg">Email</CardTitle>
         </CardHeader>
         <CardContent>
           {options.emailConfigured ? (
@@ -80,7 +80,7 @@ function AccountPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="font-display text-base">This device</CardTitle>
+          <CardTitle className="font-display text-lg">This device</CardTitle>
         </CardHeader>
         <CardContent>
           <Button

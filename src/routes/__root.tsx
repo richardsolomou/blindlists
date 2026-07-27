@@ -82,7 +82,7 @@ function Header() {
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
-              <Button variant="ghost" size="sm" className="gap-2">
+              <Button variant="ghost" size="sm" className="gap-2 normal-case">
                 <User className="text-faint" />
                 {viewer.name}
               </Button>

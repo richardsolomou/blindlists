@@ -210,7 +210,7 @@ function Sealed({ token, game, roster }: { token: string; game: GameView; roster
     <div className="space-y-6">
       <Card className="overflow-hidden">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2.5 font-display text-base text-moss uppercase">
+          <CardTitle className="flex items-center gap-2.5 font-display text-lg text-moss">
             <span className="stamp-sealed" aria-hidden="true" />
             Sealed
           </CardTitle>
@@ -238,7 +238,7 @@ function Roster({ token, game, members }: { token: string; game: GameView; membe
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-display text-base">Playing</CardTitle>
+        <CardTitle className="font-display text-lg">Playing</CardTitle>
       </CardHeader>
       <CardContent className="space-y-1">
         {game.entries.map((entry) => (
@@ -254,7 +254,14 @@ function Roster({ token, game, members }: { token: string; game: GameView; membe
           <div className="flex flex-wrap items-center gap-2 pt-4">
             <span className="text-sm text-faint">Sitting out:</span>
             {missing.map((member) => (
-              <Button key={member.userId} variant="outline" size="sm" disabled={join.isPending} onClick={() => join.mutate(member.userId)}>
+              <Button
+                key={member.userId}
+                variant="outline"
+                size="sm"
+                className="normal-case"
+                disabled={join.isPending}
+                onClick={() => join.mutate(member.userId)}
+              >
                 <Plus />
                 {member.name}
               </Button>
@@ -320,7 +327,7 @@ function StartGame({ token, members }: { token: string; members: GroupMember[] }
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-display text-base">Start a game</CardTitle>
+        <CardTitle className="font-display text-lg">Start a game</CardTitle>
       </CardHeader>
       <CardContent>
         {members.length < 2 ? (
@@ -337,7 +344,7 @@ function StartGame({ token, members }: { token: string; members: GroupMember[] }
                     variant={selected ? 'secondary' : 'outline'}
                     size="sm"
                     aria-pressed={selected}
-                    className={selected ? 'border-brass/50' : 'text-faint'}
+                    className={cn('normal-case', selected ? 'border-brass/50' : 'text-faint')}
                     onClick={() =>
                       setPlaying((current) => (selected ? current.filter((id) => id !== member.userId) : [...current, member.userId]))
                     }
