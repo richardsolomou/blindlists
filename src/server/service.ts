@@ -70,6 +70,17 @@ export class SealedListsService {
     return this.requireMembership(token, userId).group.id
   }
 
+  /**
+   * Ends the group for everyone in it. Any member may: there are no roles here,
+   * the same as removing someone or deleting a game. It is also the only way out
+   * for the last player left, who cannot leave a group they are alone in.
+   */
+  deleteGroup(token: string, userId: string) {
+    const { group } = this.requireMembership(token, userId)
+    this.repository.deleteGroup(group.id)
+    this.events?.publish(group.id)
+  }
+
   removeMember(token: string, userId: string, targetUserId: string): GroupView {
     const { group } = this.requireMembership(token, userId)
     const collecting = this.repository.activeGame(group.id)

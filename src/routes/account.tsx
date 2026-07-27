@@ -57,12 +57,13 @@ function AccountPage() {
 
       <YourName current={viewer.name} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-display text-lg">Email</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {options.emailConfigured ? (
+      {/* An instance with no mail server has nothing to offer here, so it says nothing. */}
+      {options.emailConfigured && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-display text-lg">Email</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="flex items-start justify-between gap-6">
               <div>
                 <Label htmlFor="game-emails">Tell me about my games</Label>
@@ -77,11 +78,9 @@ function AccountPage() {
                 onCheckedChange={(checked) => save.mutate(checked)}
               />
             </div>
-          ) : (
-            <p className="text-sm text-faint">This instance has no mail server, so it sends nothing.</p>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

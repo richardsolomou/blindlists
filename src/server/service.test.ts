@@ -520,3 +520,52 @@ describe('a link that points at nothing', () => {
     expect(service.hasGroup(token)).toBe(true)
   })
 })
+
+describe('deleteGroup', () => {
+  it('takes the group off everyone who was in it', () => {
+    const { token } = groupWithGame()
+    service.deleteGroup(token, 'alex')
+    expect([service.myGroups('alex'), service.myGroups('rich')]).toEqual([[], []])
+  })
+
+  it('leaves the link pointing at nothing', () => {
+    const { token } = groupWithGame()
+    service.deleteGroup(token, 'alex')
+    expect(service.hasGroup(token)).toBe(false)
+  })
+
+  it('takes its games and lists with it', () => {
+    const { token } = groupWithGame()
+    for (const id of ['alex', 'rich', 'dan']) service.sealList(token, id, `${id} list`)
+    const gameId = service.groupView(token, 'alex').currentGame!.id
+    service.deleteGroup(token, 'alex')
+    expect(rejection(() => service.gameView(token, gameId, 'alex'))).toBe(404)
+  })
+
+  it('is the way out for the last player, who cannot leave', () => {
+    const { token } = service.createGroup('alex', 'Tuesday night')
+    expect(rejection(() => service.removeMember(token, 'alex', 'alex'))).toBe(409)
+    service.deleteGroup(token, 'alex')
+    expect(service.myGroups('alex')).toEqual([])
+  })
+
+  it('refuses someone who only holds the link', () => {
+    const { token } = groupWithGame()
+    expect(rejection(() => service.deleteGroup(token, 'sam'))).toBe(403)
+  })
+
+  it('leaves another group alone', () => {
+    const { token } = groupWithGame()
+    const other = service.createGroup('alex', 'Saturday')
+    service.deleteGroup(token, 'alex')
+    expect(service.myGroups('alex').map((group) => group.name)).toEqual(['Saturday'])
+    expect(service.hasGroup(other.token)).toBe(true)
+  })
+
+  it('announces the change so the others find out', () => {
+    const { token } = groupWithGame()
+    changed = []
+    service.deleteGroup(token, 'alex')
+    expect(changed).toHaveLength(1)
+  })
+})

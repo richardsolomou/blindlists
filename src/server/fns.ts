@@ -100,6 +100,17 @@ export const startGame = createServerFn({ method: 'POST' })
     }),
   )
 
+export const deleteGroup = createServerFn({ method: 'POST' })
+  .validator(tokenSchema)
+  .handler(({ data }) =>
+    rpc(async () => {
+      requireMutationOrigin()
+      const viewer = await requireUser()
+      app().service.deleteGroup(data.token, viewer.id)
+      return null
+    }),
+  )
+
 export const deleteGame = createServerFn({ method: 'POST' })
   .validator(gameSchema)
   .handler(({ data }) =>

@@ -27,6 +27,11 @@ export class Repository {
     return group ? { group, members: this.membersOf(group.id) } : undefined
   }
 
+  /** Takes the group and everything hanging off it: members, games, and their lists. */
+  deleteGroup(groupId: string) {
+    this.database.delete(groups).where(eq(groups.id, groupId)).run()
+  }
+
   /** Every group the user belongs to, newest first. */
   groupsOf(userId: string) {
     return this.database

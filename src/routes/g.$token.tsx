@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { Link, createFileRoute, notFound } from '@tanstack/react-router'
-import { Check, Copy, Plus, Users } from 'lucide-react'
+import { Link, createFileRoute, notFound, useNavigate } from '@tanstack/react-router'
+import { Check, Copy, Plus, Trash2, Users } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -25,11 +25,12 @@ import type { EntryView, GameView, GroupMember, GroupView } from '../core/game'
 import { ConfirmButton } from '../client/components/ConfirmButton'
 import { DeleteGameButton } from '../client/components/DeleteGameButton'
 import { RevealedLists } from '../client/components/RevealedLists'
-import { groupQuery, meQuery } from '../client/queries'
+import { groupQuery, meQuery, myGroupsQuery } from '../client/queries'
 import { errorMessage } from '../client/queryClient'
+import { useGone } from '../client/useGone'
 import { useLiveGroup } from '../client/useLiveGroup'
 import { useOrigin } from '../client/useOrigin'
-import { dropPlayer, joinGame, joinGroup, removeMember, sealList, startGame } from '../server/fns'
+import { deleteGroup, dropPlayer, joinGame, joinGroup, removeMember, sealList, startGame } from '../server/fns'
 
 export const Route = createFileRoute('/g/$token')({
   loader: async ({ context, params }) => {
@@ -57,13 +58,18 @@ function useGroupMutation<TInput>(token: string, call: (input: TInput) => Promis
 
 function GroupPage() {
   const { token } = Route.useParams()
+  const navigate = useNavigate()
   const { data: group } = useSuspenseQuery(groupQuery(token))
   const { data: viewer } = useSuspenseQuery(meQuery())
   const isMember = typeof group === 'object' && group !== null && group.isMember
   useLiveGroup(token, isMember)
+  // The loader 404s a link that was already dead, so reaching null here means the
+  // group went while this page was open — someone else deleted it. Leaving has to
+  // happen in an effect: throwing `notFound()` mid-render hits the error boundary.
+  useGone(group === null, 'That group was deleted.', () => void navigate({ to: '/' }))
 
   if (group === 'signed-out' || !viewer) return <SignInFirst token={token} />
-  if (!group) throw notFound()
+  if (!group) return null
 
   return (
     <main>
@@ -74,7 +80,7 @@ function GroupPage() {
         </div>
         {group.isMember && (
           <div className="flex flex-wrap items-center gap-2">
-            <PlayersDialog token={token} group={group} viewerId={viewer.id} />
+            <GroupDialog token={token} group={group} viewerId={viewer.id} />
             {/* Only ever offered once the last lot is open, so it can never read as an action on the game on screen. */}
             {group.canStartGame && group.currentGame && <NewGameDialog token={token} members={group.members} />}
           </div>
@@ -478,7 +484,8 @@ function History({ token, group }: { token: string; group: GroupView }) {
   )
 }
 
-function PlayersDialog({ token, group, viewerId }: { token: string; group: GroupView; viewerId: string }) {
+/** Everything about the group itself: who is in it, how to invite, and how to end it. */
+function GroupDialog({ token, group, viewerId }: { token: string; group: GroupView; viewerId: string }) {
   const remove = useGroupMutation(token, (userId: string) => removeMember({ data: { token, userId } }))
   const canRemove = canRemoveMember(group.members.length)
 
@@ -494,7 +501,7 @@ function PlayersDialog({ token, group, viewerId }: { token: string; group: Group
       />
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="font-display">Players</DialogTitle>
+          <DialogTitle className="font-display normal-case">{group.name}</DialogTitle>
           <DialogDescription>Anyone with the link can join. Removing someone leaves their finished games alone.</DialogDescription>
         </DialogHeader>
         <div className="my-2 space-y-1">
@@ -529,7 +536,49 @@ function PlayersDialog({ token, group, viewerId }: { token: string; group: Group
         <DialogFooter className="sm:justify-start">
           <CopyInviteButton token={token} />
         </DialogFooter>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-3 border-t border-edge pt-4">
+          <p className="text-sm text-faint">Done with this group?</p>
+          <DeleteGroupButton token={token} group={group} />
+        </div>
       </DialogContent>
     </Dialog>
+  )
+}
+
+function DeleteGroupButton({ token, group }: { token: string; group: GroupView }) {
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const games = group.pastGames.length + (group.currentGame ? 1 : 0)
+
+  const remove = useMutation({
+    mutationFn: () => deleteGroup({ data: { token } }),
+    onSuccess: async () => {
+      queryClient.removeQueries({ queryKey: groupQuery(token).queryKey })
+      await queryClient.invalidateQueries(myGroupsQuery())
+      toast.success('Group deleted.')
+      void navigate({ to: '/' })
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  })
+
+  return (
+    <ConfirmButton
+      label={
+        <>
+          <Trash2 />
+          Delete group
+        </>
+      }
+      variant="ghost"
+      title={`Delete ${group.name}?`}
+      description={
+        games === 0
+          ? 'It goes for everyone in it. This cannot be undone.'
+          : `It goes for everyone in it, along with ${games === 1 ? 'its one game' : `all ${games} games`} and every list in them. This cannot be undone.`
+      }
+      confirmLabel="Delete group"
+      disabled={remove.isPending}
+      onConfirm={() => remove.mutate()}
+    />
   )
 }

@@ -23,7 +23,7 @@ While a game is still collecting you can change who is in it: join a game you we
 
 Players come and go from the group too. Anyone with the link can join; anyone in the group can remove a member or leave themselves. Removal takes them off the roster and out of a game still collecting, but leaves their lists in games that already revealed: history stays true. The last player cannot leave, since that would strand the group with nobody in it.
 
-Anyone in the group can delete a game, before or after the reveal, which throws away every list in it for everybody. Delete a game still collecting to call one off — that is the only way to abandon a game nobody is going to finish, because a group runs one at a time. Delete a finished one to clear it out of history. Your name is on the account page and changing it changes what the group sees next to your lists, including in games already played.
+Anyone in the group can delete the whole group, which ends it for everyone in it and takes every game with it — that is also how the last player left gets out, since they cannot leave a group they are alone in. Anyone in the group can delete a game, before or after the reveal, which throws away every list in it for everybody. Delete a game still collecting to call one off — that is the only way to abandon a game nobody is going to finish, because a group runs one at a time. Delete a finished one to clear it out of history. Your name is on the account page and changing it changes what the group sees next to your lists, including in games already played.
 
 There is nothing to administer: no roles, no owner, no instance settings. Anyone in a group can do anything to it.
 
@@ -62,7 +62,7 @@ docker compose up -d
 
 Put it behind a reverse proxy that forwards `X-Forwarded-Host` and `X-Forwarded-Proto`; set `APP_URL` when it cannot. Sessions are signed with a secret generated into `/data/auth.secret` on first boot — back that file up with the database, or set `AUTH_SECRET` yourself. Health check: `GET /api/health`.
 
-Everything else in `.env.example` is optional and degrades honestly. With no SMTP settings the app sends no email at all and stops offering password reset, since it could not deliver one. Each social provider appears on the sign-in page only when both halves of its credential are present; their callback URLs are `/api/auth/callback/google` and `/api/auth/callback/discord`.
+Everything else in `.env.example` is optional and degrades honestly. With no SMTP settings the app sends no email at all, stops offering password reset, and drops the email section from the account page rather than explaining itself. Each social provider appears on the sign-in page only when both halves of its credential are present; their callback URLs are `/api/auth/callback/google` and `/api/auth/callback/discord`.
 
 ## Layout
 
