@@ -104,8 +104,8 @@ function Home() {
       </form>
 
       <p className="mt-9 text-sm text-faint">
-        You get one link for the whole crew. Send it to them once, everybody bookmarks it, and every future game is waiting there — no
-        accounts, no passwords, no links to hand out again. Games are deleted {RETENTION_DAYS} days after they start.
+        You get one link for the whole crew. Send it to them once and every game from then on is waiting there. Games stick around for{' '}
+        {RETENTION_DAYS} days.
       </p>
     </main>
   )

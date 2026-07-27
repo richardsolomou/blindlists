@@ -1,4 +1,3 @@
-import crypto from 'node:crypto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { RETENTION_MS, normalizeList } from '../core/game'
 import { openDatabase } from '../db/connection'
@@ -99,11 +98,10 @@ describe('startGame', () => {
 })
 
 describe('sealList', () => {
-  it('fingerprints the normalized list text', () => {
+  it('stores the list normalized', () => {
     const { token, id } = crewWithGame()
     const view = service.sealList(token, id('Alex'), '  Captain \r\n Intercessors \n\n')
-    const expected = crypto.createHash('sha256').update(normalizeList('  Captain \r\n Intercessors \n\n')).digest('hex')
-    expect(view.currentGame?.entries.find((entry) => entry.isViewer)?.listHash).toBe(expected)
+    expect(view.currentGame?.entries.find((entry) => entry.isViewer)?.list).toBe(normalizeList('  Captain \r\n Intercessors \n\n'))
   })
 
   it('replaces an earlier list while the game is still collecting', () => {

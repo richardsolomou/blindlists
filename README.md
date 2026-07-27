@@ -11,7 +11,7 @@ You set up a **crew** once — its name and everyone who plays — and get a sin
 1. First visit, the page asks who you are and you tap your name. That device remembers you from then on.
 2. Anyone in the crew starts a game and picks who is playing tonight.
 3. Each player pastes their army list and seals it. They can replace it as long as anyone is still outstanding, and nobody can see another list while the game is collecting.
-4. When the last list is sealed, every list is revealed together, fingerprinted with SHA-256, and permanently locked.
+4. When the last list is sealed, every list is revealed together and permanently locked.
 
 Everybody opens the same bookmark for every future game — no new links, ever. A crew runs one game at a time, and finished games stay on the page as history.
 
@@ -21,25 +21,15 @@ There are no accounts, no settings, and nothing to administer.
 
 ## Storage
 
-A crew is its name, its link token, and a name per member — a few hundred bytes, kept as long as the crew uses it so the bookmark never dies. A game is a number, its players, and their list text: a few KB. Nothing else is kept — no accounts, no email, no timestamps beyond when a game started and revealed, and no stored fingerprints (they are recomputed from the list on every read, so a list and its fingerprint can never disagree).
+A crew is its name, its link token, and a name per member — a few hundred bytes, kept as long as the crew uses it so the bookmark never dies. A game is a number, its players, and their list text: a few KB. Nothing else is kept — no accounts, no email, and no timestamps beyond when a game started and revealed. List text is stored exactly as it will be shown, normalized to LF line endings with trailing whitespace and surrounding blank lines removed.
 
 Whole games are deleted 30 days after they start, taking the lists with them and leaving the crew intact. The sweep runs at boot and hourly after that (`RETENTION_DAYS` in `src/core/game.ts`), so a public instance stays flat rather than growing forever.
-
-### Verifying a list was not changed
-
-The fingerprint shown next to each revealed list is the SHA-256 of that exact text. Copy the list and check it yourself:
-
-```sh
-pbpaste | shasum -a 256
-```
-
-The text is normalized before hashing: LF line endings, no trailing whitespace on any line, and no leading or trailing blank lines.
 
 ## Trust model
 
 The crew link is the only credential. Anyone who has it can open the crew and tap any name on it, including yours, so keep it to the group and do not post it publicly. Tapping your name sets a cookie so the device remembers you; that cookie is a convenience, not authentication, and grants nothing the link does not already grant.
 
-What the design does guarantee is the part that matters at the table: while a game is collecting the server hands nobody another player's list, whatever they tap. What it cannot guarantee is a hostile operator — lists sit in plain text in the server's SQLite database, so whoever runs the deployment could read one before the reveal. That is fine among friends running their own instance; an escrow that survives a hostile operator needs a client-side commit–reveal scheme, which this deliberately is not.
+What the design does guarantee is the part that matters at the table: while a game is collecting the server hands nobody another player's list, whatever they tap, and once revealed a list can never be edited. What it cannot guarantee is a hostile operator — lists sit in plain text in the server's SQLite database, so whoever runs the deployment could read one before the reveal. That is fine among friends running their own instance; an escrow that survives a hostile operator needs a client-side commit–reveal scheme, which this deliberately is not.
 
 ## Running it
 

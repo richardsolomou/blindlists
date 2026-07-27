@@ -15,12 +15,13 @@ Blind army list submission for Warhammer 40,000, and nothing else. Lists are opa
 ## Load-bearing rules
 
 - **`src/core/game.ts` is the whole domain** — limits, retention, list normalization, types, and `gameView`. It stays free of IO and framework imports.
-- **`gameView` is the only place visibility is decided.** A list and its fingerprint reach exactly two audiences: their owner, and everyone once the game reveals. Route components and server functions must not reassemble a view by hand.
+- **`gameView` is the only place visibility is decided.** A list reaches exactly two audiences: its owner, and everyone once the game reveals. Route components and server functions must not reassemble a view by hand.
 - **The crew link is the credential; the member cookie is not.** `src/server/member.ts` only remembers which name a device tapped, and it grants nothing the link does not already grant — anyone with the link can tap any name. So never gate a _visibility_ rule on the cookie; gate it on the reveal, as `gameView` does. Gating a _mutation_ on it (`requireMember`) is fine: it stops accidents, not adversaries.
 - **The reveal happens inside the repository transaction** (`Repository.sealList`, `Repository.dropEntry`). Deciding "was that the last list?" outside the transaction races two simultaneous submissions.
 - **A crew runs one game at a time**, enforced in `Repository.createGame`'s transaction. `crewView` then shows the collecting game, or the most recently revealed one, so a reveal lands on the page the crew is already looking at instead of vanishing into history.
 - **Revealed games are immutable**: sealing and dropping both check `revealedAt` first. Every new mutation must too.
-- **Nothing derived is stored.** Fingerprints are recomputed from the list text on read, which is why `gameView` takes a `fingerprint` function rather than importing crypto. Adding a stored column that duplicates the list is a regression.
+- **Nothing derived is stored.** A column that can be computed from the list text is a regression.
+- **The UI explains nothing about its own mechanics.** No hashes, no jargon, no "how it works" — players get plain statements of what is true now ("Sealed", "Nobody can change a list now"). Technical detail belongs in this file and the README, whose readers are developers.
 - **Storage is bounded by the retention sweep** in `src/server/app.ts`, driven by `RETENTION_DAYS`. It deletes games, never crews — a crew's link is a bookmark people keep for years. Anything holding list content must cascade from `games` so it disappears with the game.
 - **Server functions wrap handlers in `rpc()`** — a thrown `Response` otherwise reaches the client as a successful result — and every mutation calls `requireMutationOrigin()` first. CSRF protection is per-function, not middleware.
 - **Invite tokens are the only credential.** Never log them, never put them in an error message, and never widen who a view hands them to.

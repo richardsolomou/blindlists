@@ -1,7 +1,7 @@
 import { MEMBERS_MAX, RETENTION_MS, gameView, normalizeList } from '../core/game'
 import type { CrewView, GameView, MemberRecord } from '../core/game'
 import type { Repository } from '../db/repository'
-import { createId, createToken, fingerprint } from './crypto'
+import { createId, createToken } from './crypto'
 
 /**
  * Every rule that keeps a game fair lives here or in `core/game`; the HTTP
@@ -40,7 +40,7 @@ export class BlindListsService {
       name: crew.name,
       members,
       viewer,
-      currentGame: current ? gameView(current, this.repository.entriesOf(current.id), viewer?.id ?? null, fingerprint) : null,
+      currentGame: current ? gameView(current, this.repository.entriesOf(current.id), viewer?.id ?? null) : null,
       pastGames: revealed.filter((game) => game.id !== current?.id).map((game) => ({ id: game.id, number: game.number })),
       canStartGame: !active,
     }
@@ -58,7 +58,7 @@ export class BlindListsService {
     const { crew } = this.crew(token)
     const game = this.repository.gameById(crew.id, gameId)
     if (!game) throw notFound()
-    return gameView(game, this.repository.entriesOf(game.id), viewerId ?? null, fingerprint)
+    return gameView(game, this.repository.entriesOf(game.id), viewerId ?? null)
   }
 
   startGame(token: string, viewerId: string | undefined, memberIds: string[]): CrewView {

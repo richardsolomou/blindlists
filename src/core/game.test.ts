@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { allSealed, duplicateName, gameView, normalizeList, shortFingerprint } from './game'
+import { allSealed, duplicateName, gameView, normalizeList } from './game'
 import type { EntryRecord, GameRecord } from './game'
-
-const hash = (list: string) => `hash(${list})`
 
 const game = (revealedAt: number | null = null): GameRecord => ({ id: 'game1', number: 3, createdAt: 1000, revealedAt })
 
@@ -31,47 +29,42 @@ describe('gameView while collecting', () => {
   const entries = [entry('alex', true), entry('rich', true)]
 
   it('hides another player’s list', () => {
-    const view = gameView(game(), entries, 'rich', hash)
+    const view = gameView(game(), entries, 'rich')
     expect(view.entries.find((candidate) => candidate.memberId === 'alex')?.list).toBeNull()
   })
 
-  it('hides another player’s fingerprint', () => {
-    const view = gameView(game(), entries, 'rich', hash)
-    expect(view.entries.find((candidate) => candidate.memberId === 'alex')?.listHash).toBeNull()
-  })
-
   it('still reports that the other player has sealed', () => {
-    const view = gameView(game(), entries, 'rich', hash)
+    const view = gameView(game(), entries, 'rich')
     expect(view.entries.find((candidate) => candidate.memberId === 'alex')?.sealed).toBe(true)
   })
 
   it('shows a player their own list back', () => {
-    const view = gameView(game(), entries, 'rich', hash)
+    const view = gameView(game(), entries, 'rich')
     expect(view.entries.find((candidate) => candidate.memberId === 'rich')?.list).toBe('rich list')
   })
 
   it('hides every list from someone who is not playing', () => {
-    const view = gameView(game(), entries, 'dan', hash)
+    const view = gameView(game(), entries, 'dan')
     expect(view.entries.map((candidate) => candidate.list)).toEqual([null, null])
   })
 
   it('hides every list from a visitor who has not tapped a name', () => {
-    const view = gameView(game(), entries, null, hash)
+    const view = gameView(game(), entries, null)
     expect(view.entries.map((candidate) => candidate.list)).toEqual([null, null])
   })
 
   it('counts how many lists are in', () => {
-    const view = gameView(game(), [entry('alex', true), entry('rich', false)], 'alex', hash)
+    const view = gameView(game(), [entry('alex', true), entry('rich', false)], 'alex')
     expect(view.sealed).toBe(1)
   })
 
   it('reports the viewer as unsealed when they have not submitted', () => {
-    const view = gameView(game(), [entry('alex', true), entry('rich', false)], 'rich', hash)
+    const view = gameView(game(), [entry('alex', true), entry('rich', false)], 'rich')
     expect(view.viewerSealed).toBe(false)
   })
 
   it('reports no viewer entry for someone sitting the game out', () => {
-    const view = gameView(game(), entries, 'dan', hash)
+    const view = gameView(game(), entries, 'dan')
     expect(view.viewerSealed).toBeNull()
   })
 })
@@ -80,22 +73,17 @@ describe('gameView once revealed', () => {
   const entries = [entry('alex', true), entry('rich', true)]
 
   it('shows every list to a player', () => {
-    const view = gameView(game(9), entries, 'rich', hash)
+    const view = gameView(game(9), entries, 'rich')
     expect(view.entries.map((candidate) => candidate.list)).toEqual(['alex list', 'rich list'])
   })
 
   it('shows every list to someone who was not playing', () => {
-    const view = gameView(game(9), entries, 'dan', hash)
+    const view = gameView(game(9), entries, 'dan')
     expect(view.entries.map((candidate) => candidate.list)).toEqual(['alex list', 'rich list'])
   })
 
-  it('fingerprints each revealed list', () => {
-    const view = gameView(game(9), entries, null, hash)
-    expect(view.entries.map((candidate) => candidate.listHash)).toEqual(['hash(alex list)', 'hash(rich list)'])
-  })
-
   it('marks which entry belongs to the viewer', () => {
-    const view = gameView(game(9), entries, 'rich', hash)
+    const view = gameView(game(9), entries, 'rich')
     expect(view.entries.filter((candidate) => candidate.isViewer).map((candidate) => candidate.memberId)).toEqual(['rich'])
   })
 })
@@ -125,11 +113,5 @@ describe('normalizeList', () => {
 
   it('keeps blank lines between blocks', () => {
     expect(normalizeList('CHARACTERS\n\nCaptain')).toBe('CHARACTERS\n\nCaptain')
-  })
-})
-
-describe('shortFingerprint', () => {
-  it('takes the leading 12 hex characters', () => {
-    expect(shortFingerprint('0123456789abcdef0123456789abcdef')).toBe('0123456789ab')
   })
 })

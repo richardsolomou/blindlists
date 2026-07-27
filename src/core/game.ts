@@ -44,8 +44,6 @@ export type EntryView = {
   sealed: boolean
   /** Present only once the game is revealed, or for the viewer's own list. */
   list: string | null
-  /** SHA-256 of the list above, derived on read rather than stored. */
-  listHash: string | null
   isViewer: boolean
 }
 
@@ -83,15 +81,9 @@ export function allSealed(entries: readonly EntryRecord[]) {
 /**
  * The single place visibility is decided: before the reveal a viewer sees only
  * their own list, and everyone else's is withheld even though their names and
- * sealed state are public. `fingerprint` is injected so this file stays free of
- * platform crypto.
+ * sealed state are public.
  */
-export function gameView(
-  game: GameRecord,
-  entries: readonly EntryRecord[],
-  viewerId: string | null,
-  fingerprint: (list: string) => string,
-): GameView {
+export function gameView(game: GameRecord, entries: readonly EntryRecord[], viewerId: string | null): GameView {
   const revealed = game.revealedAt !== null
   const viewerEntry = entries.find((entry) => entry.memberId === viewerId)
   return {
@@ -100,20 +92,18 @@ export function gameView(
     status: revealed ? 'revealed' : 'collecting',
     sealed: entries.filter((entry) => entry.list !== null).length,
     total: entries.length,
-    entries: entries.map((entry) => entryView(entry, revealed, viewerId, fingerprint)),
+    entries: entries.map((entry) => entryView(entry, revealed, viewerId)),
     viewerSealed: viewerEntry ? viewerEntry.list !== null : null,
   }
 }
 
-function entryView(entry: EntryRecord, revealed: boolean, viewerId: string | null, fingerprint: (list: string) => string): EntryView {
+function entryView(entry: EntryRecord, revealed: boolean, viewerId: string | null): EntryView {
   const isViewer = entry.memberId === viewerId
-  const list = revealed || isViewer ? entry.list : null
   return {
     memberId: entry.memberId,
     name: entry.name,
     sealed: entry.list !== null,
-    list,
-    listHash: list === null ? null : fingerprint(list),
+    list: revealed || isViewer ? entry.list : null,
     isViewer,
   }
 }
@@ -129,9 +119,8 @@ export function duplicateName(names: readonly string[]) {
 }
 
 /**
- * The exact bytes that get stored and hashed, so a player can reproduce the
- * fingerprint themselves: LF line endings, no trailing whitespace on any line,
- * no leading or trailing blank lines.
+ * The exact bytes that get stored: LF line endings, no trailing whitespace on
+ * any line, no leading or trailing blank lines.
  */
 export function normalizeList(text: string) {
   return text
@@ -142,8 +131,4 @@ export function normalizeList(text: string) {
     .join('\n')
     .replace(/^\n+/, '')
     .replace(/\n+$/, '')
-}
-
-export function shortFingerprint(hash: string) {
-  return hash.slice(0, 12)
 }

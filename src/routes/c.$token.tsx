@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
-import { LIST_MAX_LENGTH, NAME_MAX_LENGTH, shortFingerprint } from '../core/game'
+import { LIST_MAX_LENGTH, NAME_MAX_LENGTH } from '../core/game'
 import type { CrewView, EntryView, GameView, MemberRecord } from '../core/game'
 import { CopyButton } from '../client/components/CopyButton'
 import { GameHeader } from '../client/components/GameHeader'
@@ -141,12 +141,7 @@ function Sealed({ token, game }: { token: string; game: GameView }) {
   return (
     <section className="space-y-4">
       <div className="panel overflow-hidden">
-        <div className="flex items-baseline justify-between gap-3 border-b border-edge px-4 py-3">
-          <span className="font-display text-sm tracking-[0.14em] text-moss uppercase">Sealed</span>
-          <span className="font-mono text-xs text-faint" title={mine.listHash ?? undefined}>
-            {mine.listHash && shortFingerprint(mine.listHash)}
-          </span>
-        </div>
+        <p className="border-b border-edge px-4 py-3 font-display text-sm tracking-[0.14em] text-moss uppercase">Sealed</p>
         <pre className="overflow-x-auto px-4 py-4 font-mono text-sm leading-relaxed whitespace-pre-wrap">{mine.list}</pre>
       </div>
       <button type="button" className="button-quiet" onClick={() => setReplacing(true)}>
