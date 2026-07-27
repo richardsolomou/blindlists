@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import type { GroupEvents } from '../adapters/events'
 import { normalizeList } from '../core/game'
 import { openDatabase, type SealedListsDatabase } from '../db/connection'
 import { Repository } from '../db/repository'
@@ -9,6 +10,7 @@ import type { Notifier } from './notify'
 let database: SealedListsDatabase
 let service: SealedListsService
 let notified: string[]
+let changed: string[]
 let now = 1000
 
 /** Accounts are better-auth's to create; tests only need the rows to exist. */
@@ -22,12 +24,14 @@ function makeUser(id: string, name: string) {
 beforeEach(() => {
   now = 1000
   notified = []
+  changed = []
   database = openDatabase(':memory:')
   const notifier: Notifier = {
     gameStarted: (gameId, startedBy) => notified.push(`started:${startedBy}`),
     gameRevealed: () => notified.push('revealed'),
   }
-  service = new SealedListsService(new Repository(database), () => now, notifier)
+  const events: GroupEvents = { publish: (groupId) => changed.push(groupId), subscribe: () => () => {} }
+  service = new SealedListsService(new Repository(database), () => now, notifier, events)
   for (const name of ['Alex', 'Rich', 'Dan', 'Sam']) makeUser(name.toLowerCase(), name)
 })
 
@@ -389,5 +393,38 @@ describe('email preference', () => {
     service.setEmailPreference('alex', false)
     service.setEmailPreference('alex', true)
     expect(service.emailPreference('alex').gameEmails).toBe(true)
+  })
+})
+
+describe('live updates', () => {
+  it('announces a change when someone joins the group', () => {
+    const { token } = service.createGroup('alex', 'Tuesday night')
+    changed = []
+    service.joinGroup(token, 'rich')
+    expect(changed).toHaveLength(1)
+  })
+
+  it('announces a change when a list is sealed', () => {
+    const { token } = groupWithGame()
+    changed = []
+    service.sealList(token, 'rich', 'Death Guard')
+    expect(changed).toHaveLength(1)
+  })
+
+  it('says nothing when a mutation is refused', () => {
+    const { token } = groupWithGame()
+    changed = []
+    rejection(() => service.sealList(token, 'sam', 'Not in this game'))
+    expect(changed).toEqual([])
+  })
+
+  it('gives a member the group behind their link', () => {
+    const { token } = groupWithGame()
+    expect(service.memberGroupId(token, 'rich')).toBe(service.memberGroupId(token, 'alex'))
+  })
+
+  it('refuses a link holder who has not joined', () => {
+    const { token } = groupWithGame()
+    expect(rejection(() => service.memberGroupId(token, 'sam'))).toBe(403)
   })
 })

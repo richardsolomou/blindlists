@@ -1,11 +1,5 @@
 import { queryOptions } from '@tanstack/react-query'
-import type { GroupView } from '../core/game'
 import { group, emailPreference, game, me, myGroups, signInOptions } from '../server/fns'
-
-// While a game is collecting the page polls, so everyone sees the reveal land
-// without refreshing; a revealed game never changes again.
-const collecting = (query: { state: { data?: GroupView | 'signed-out' | null } }) =>
-  typeof query.state.data === 'object' && query.state.data?.currentGame?.status === 'collecting' ? 5000 : false
 
 export const meQuery = () => queryOptions({ queryKey: ['me'], queryFn: () => me() })
 
@@ -15,12 +9,8 @@ export const emailPreferenceQuery = () => queryOptions({ queryKey: ['email-prefe
 
 export const myGroupsQuery = () => queryOptions({ queryKey: ['my-groups'], queryFn: () => myGroups() })
 
-export const groupQuery = (token: string) =>
-  queryOptions({
-    queryKey: ['group', token],
-    queryFn: () => group({ data: { token } }),
-    refetchInterval: collecting,
-  })
+// No polling: `useLiveGroup` refetches this when the server says the group changed.
+export const groupQuery = (token: string) => queryOptions({ queryKey: ['group', token], queryFn: () => group({ data: { token } }) })
 
 export const gameQuery = (token: string, gameId: string) =>
   queryOptions({

@@ -3,8 +3,9 @@ import { app } from './app'
 
 export type Viewer = { id: string; name: string; email: string }
 
-export async function currentUser(): Promise<Viewer | null> {
-  const session = await app().auth.api.getSession({ headers: getRequest().headers })
+/** Route handlers pass their own headers; server functions read them from the ambient request. */
+export async function currentUser(headers?: Headers): Promise<Viewer | null> {
+  const session = await app().auth.api.getSession({ headers: headers ?? getRequest().headers })
   if (!session) return null
   const { id, name, email } = session.user
   return { id, name, email }

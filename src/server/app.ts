@@ -1,5 +1,6 @@
 import path from 'node:path'
 import { buildEmailDelivery } from '../adapters/email'
+import { createGroupEvents, type GroupEvents } from '../adapters/events'
 import { databasePath, openDatabase, type SealedListsDatabase } from '../db/connection'
 import { Repository } from '../db/repository'
 import { authSecret, createAuth } from './auth'
@@ -9,6 +10,7 @@ import { SealedListsService } from './service'
 type App = {
   database: SealedListsDatabase
   service: SealedListsService
+  events: GroupEvents
   auth: ReturnType<typeof createAuth>
   emailConfigured: boolean
 }
@@ -24,10 +26,12 @@ export function app(): App {
     const database = openDatabase(file)
     const repository = new Repository(database)
     const email = buildEmailDelivery()
-    const service = new SealedListsService(repository, Date.now, buildNotifier(repository, email, appUrl))
+    const events = createGroupEvents()
+    const service = new SealedListsService(repository, Date.now, buildNotifier(repository, email, appUrl), events)
     globalApp.sealedListsApp = {
       database,
       service,
+      events,
       auth: createAuth(database, authSecret(path.dirname(file)), email),
       emailConfigured: email.configured,
     }

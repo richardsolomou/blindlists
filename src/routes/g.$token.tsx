@@ -1,22 +1,32 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { Link, createFileRoute, notFound } from '@tanstack/react-router'
-import { Check, Copy, Plus, Users } from 'lucide-react'
+import { ArrowLeftRight, Check, Copy, Plus, Users } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
-import { LIST_MAX_LENGTH, canRemoveMember } from '../core/game'
+import { LIST_MAX_LENGTH, PLAYERS_MIN, canRemoveMember } from '../core/game'
 import type { EntryView, GameView, GroupMember, GroupView } from '../core/game'
 import { ConfirmButton } from '../client/components/ConfirmButton'
 import { RevealedLists } from '../client/components/RevealedLists'
 import { groupQuery, meQuery } from '../client/queries'
 import { errorMessage } from '../client/queryClient'
+import { useLiveGroup } from '../client/useLiveGroup'
 import { useOrigin } from '../client/useOrigin'
 import { dropPlayer, joinGame, joinGroup, removeMember, sealList, startGame } from '../server/fns'
 
@@ -48,6 +58,8 @@ function GroupPage() {
   const { token } = Route.useParams()
   const { data: group } = useSuspenseQuery(groupQuery(token))
   const { data: viewer } = useSuspenseQuery(meQuery())
+  const isMember = typeof group === 'object' && group !== null && group.isMember
+  useLiveGroup(token, isMember)
 
   if (group === 'signed-out' || !viewer) return <SignInFirst token={token} />
   if (!group) throw notFound()
@@ -59,13 +71,22 @@ function GroupPage() {
           <h1 className="text-3xl">{group.name}</h1>
           <p className="mt-1.5 text-sm text-faint">{group.members.map((member) => member.name).join(', ')}</p>
         </div>
-        {group.isMember && <PlayersDialog token={token} group={group} viewerId={viewer.id} />}
+        {group.isMember && (
+          <div className="flex flex-wrap items-center gap-2">
+            <PlayersDialog token={token} group={group} viewerId={viewer.id} />
+            {/* Only ever offered once the last lot is open, so it can never read as an action on the game on screen. */}
+            {group.canStartGame && group.currentGame && <SwapListsDialog token={token} members={group.members} />}
+          </div>
+        )}
       </div>
       <Separator className="my-7" />
       {group.isMember ? (
         <div className="space-y-8">
-          {group.currentGame && <CurrentGame token={token} game={group.currentGame} members={group.members} viewerId={viewer.id} />}
-          {group.canStartGame && <StartGame token={token} members={group.members} />}
+          {group.currentGame ? (
+            <CurrentGame token={token} game={group.currentGame} members={group.members} viewerId={viewer.id} />
+          ) : (
+            <NoLists token={token} group={group} />
+          )}
           <History token={token} group={group} />
         </div>
       ) : (
@@ -109,6 +130,33 @@ function JoinGroup({ token, group }: { token: string; group: GroupView }) {
   )
 }
 
+/** A group with no lists in it yet: say what this place is for, then offer the one thing to do. */
+function NoLists({ token, group }: { token: string; group: GroupView }) {
+  const enoughPlayers = group.members.length >= PLAYERS_MIN
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-display text-lg">No lists yet</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <p className="max-w-prose text-sm text-faint">
+          When you are about to play, everyone here pastes the list they are bringing. Nobody sees anyone else&rsquo;s until the last one is
+          in, then they all open at once and lock.
+        </p>
+        {enoughPlayers ? (
+          <SwapListsDialog token={token} members={group.members} />
+        ) : (
+          <div className="flex flex-wrap items-center gap-4">
+            <CopyInviteButton token={token} />
+            <p className="text-sm text-faint">It takes two of you.</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 function CurrentGame({ token, game, members, viewerId }: { token: string; game: GameView; members: GroupMember[]; viewerId: string }) {
   const revealed = game.status === 'revealed'
   const roster = <Roster token={token} game={game} members={members} />
@@ -147,13 +195,13 @@ function CurrentGame({ token, game, members, viewerId }: { token: string; game: 
 }
 
 function SittingOut({ token, viewerId }: { token: string; viewerId: string }) {
-  const join = useGroupMutation(token, (userId: string) => joinGame({ data: { token, userId } }), 'You are in this game.')
+  const join = useGroupMutation(token, (userId: string) => joinGame({ data: { token, userId } }), 'You are in.')
   return (
     <Card>
       <CardContent className="flex flex-wrap items-center justify-between gap-4">
-        <p className="text-sm text-faint">This game started without you.</p>
+        <p className="text-sm text-faint">You are sitting this one out.</p>
         <Button disabled={join.isPending} onClick={() => join.mutate(viewerId)}>
-          {join.isPending ? 'Joining…' : 'Play in this game'}
+          {join.isPending ? 'Adding…' : 'Add me'}
         </Button>
       </CardContent>
     </Card>
@@ -320,48 +368,88 @@ function Initials({ name }: { name: string }) {
   )
 }
 
-function StartGame({ token, members }: { token: string; members: GroupMember[] }) {
+/**
+ * Asks everyone for a list. Deliberately not called "start a game": the app
+ * never starts anything you play, it collects lists and opens them together.
+ */
+function SwapListsDialog({ token, members }: { token: string; members: GroupMember[] }) {
+  const [open, setOpen] = useState(false)
   const [playing, setPlaying] = useState<string[]>(() => members.map((member) => member.userId))
-  const start = useGroupMutation(token, (userIds: string[]) => startGame({ data: { token, userIds } }), 'Game started.')
+  const start = useGroupMutation(token, (userIds: string[]) => startGame({ data: { token, userIds } }), 'Everyone can paste a list now.')
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-display text-lg">Start a game</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {members.length < 2 ? (
-          <p className="text-sm text-faint">Send someone the link first. A game needs two players.</p>
-        ) : (
-          <>
-            <p className="mb-3 text-sm text-faint">Who is playing?</p>
-            <div className="flex flex-wrap gap-2">
-              {members.map((member) => {
-                const selected = playing.includes(member.userId)
-                return (
-                  <Button
-                    key={member.userId}
-                    variant={selected ? 'secondary' : 'outline'}
-                    size="sm"
-                    aria-pressed={selected}
-                    className={cn('normal-case', selected ? 'border-brass/50' : 'text-faint')}
-                    onClick={() =>
-                      setPlaying((current) => (selected ? current.filter((id) => id !== member.userId) : [...current, member.userId]))
-                    }
-                  >
-                    {selected && <Check />}
-                    {member.name}
-                  </Button>
-                )
-              })}
-            </div>
-            <Button className="mt-5" disabled={playing.length < 2 || start.isPending} onClick={() => start.mutate(playing)}>
-              {start.isPending ? 'Starting…' : `Start with ${playing.length}`}
-            </Button>
-          </>
-        )}
-      </CardContent>
-    </Card>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        // Opening starts from everyone, so anyone who joined since last time is in.
+        if (next) setPlaying(members.map((member) => member.userId))
+        setOpen(next)
+      }}
+    >
+      <DialogTrigger
+        render={
+          <Button>
+            <ArrowLeftRight />
+            Swap lists
+          </Button>
+        }
+      />
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="font-display">Swap lists</DialogTitle>
+          <DialogDescription>
+            Everyone you pick pastes a list. They stay hidden until the last one is in, then they all open at once and lock.
+          </DialogDescription>
+        </DialogHeader>
+        <fieldset className="my-5">
+          <legend className="mb-3 text-sm text-faint">Who is playing?</legend>
+          <div className="flex flex-wrap gap-2">
+            {members.map((member) => {
+              const selected = playing.includes(member.userId)
+              return (
+                <Button
+                  key={member.userId}
+                  variant={selected ? 'secondary' : 'outline'}
+                  size="sm"
+                  aria-pressed={selected}
+                  className={cn('normal-case', selected ? 'border-brass/50' : 'text-faint')}
+                  onClick={() =>
+                    setPlaying((current) => (selected ? current.filter((id) => id !== member.userId) : [...current, member.userId]))
+                  }
+                >
+                  {selected && <Check />}
+                  {member.name}
+                </Button>
+              )
+            })}
+          </div>
+        </fieldset>
+        <DialogFooter>
+          <DialogClose render={<Button variant="ghost">Cancel</Button>} />
+          <Button
+            disabled={playing.length < PLAYERS_MIN || start.isPending}
+            onClick={() => start.mutate(playing, { onSuccess: () => setOpen(false) })}
+          >
+            {start.isPending ? 'Starting…' : 'Swap lists'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function CopyInviteButton({ token }: { token: string }) {
+  const origin = useOrigin()
+  return (
+    <Button
+      variant="outline"
+      onClick={() => {
+        void navigator.clipboard.writeText(`${origin}/g/${token}`).then(() => toast.success('Invite link copied.'))
+      }}
+    >
+      <Copy />
+      Copy invite link
+    </Button>
   )
 }
 
@@ -387,8 +475,6 @@ function History({ token, group }: { token: string; group: GroupView }) {
 }
 
 function PlayersDialog({ token, group, viewerId }: { token: string; group: GroupView; viewerId: string }) {
-  const origin = useOrigin()
-  const link = `${origin}/g/${token}`
   const remove = useGroupMutation(token, (userId: string) => removeMember({ data: { token, userId } }))
   const canRemove = canRemoveMember(group.members.length)
 
@@ -437,15 +523,7 @@ function PlayersDialog({ token, group, viewerId }: { token: string; group: Group
           })}
         </div>
         <DialogFooter className="sm:justify-start">
-          <Button
-            variant="outline"
-            onClick={() => {
-              void navigator.clipboard.writeText(link).then(() => toast.success('Invite link copied.'))
-            }}
-          >
-            <Copy />
-            Copy invite link
-          </Button>
+          <CopyInviteButton token={token} />
         </DialogFooter>
       </DialogContent>
     </Dialog>
