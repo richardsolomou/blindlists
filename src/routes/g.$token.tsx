@@ -271,8 +271,17 @@ function SealForm({ token, draft, roster }: { token: string; draft: string; rost
             <div className="space-y-2">
               <div className="flex items-baseline justify-between gap-4">
                 <Label htmlFor="list">Your list</Label>
-                {/* Only ever says a save happened — "saving" would flicker on every pause. */}
-                {status === 'saved' && <span className="text-xs text-faint">Saved</span>}
+                {/*
+                 * Always in the layout, only ever faded: mounting it on save moved
+                 * the box you are typing in. It says "saved" and never "saving",
+                 * which would flicker on every pause.
+                 */}
+                <span
+                  aria-hidden={status !== 'saved'}
+                  className={cn('text-xs text-faint transition-opacity', status === 'saved' ? 'opacity-100' : 'opacity-0')}
+                >
+                  Saved
+                </span>
               </div>
               <Textarea
                 id="list"
