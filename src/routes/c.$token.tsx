@@ -52,8 +52,9 @@ function CrewPage() {
 function SignInFirst({ token }: { token: string }) {
   return (
     <main className="max-w-md">
-      <h1 className="text-3xl">You have been sent a crew</h1>
-      <p className="mt-3 mb-6 text-faint">Sign in and you can join it. Your lists follow your account, on any device.</p>
+      <p className="eyebrow">You have been invited</p>
+      <h1 className="mt-2 text-3xl">Someone sent you their crew</h1>
+      <p className="mt-3 mb-7 text-faint">Sign in and you can join it. Your lists follow your account onto any device you use.</p>
       <Link to="/signin" search={{ next: `/c/${token}` }} className="button-primary">
         Sign in
       </Link>
@@ -65,7 +66,7 @@ function JoinCrew({ token, crew }: { token: string; crew: CrewView }) {
   const join = useCrewMutation(token, () => joinCrew({ data: { token } }))
   return (
     <section>
-      <p className="mb-5 text-faint">
+      <p className="mt-2 mb-6 text-faint">
         {crew.members.length === 0
           ? 'Nobody has joined yet.'
           : `${crew.members.map((member) => member.name).join(', ')} ${crew.members.length === 1 ? 'is' : 'are'} in this crew.`}
@@ -114,9 +115,9 @@ function SittingOut({ token, viewerId }: { token: string; viewerId: string }) {
   const join = useCrewMutation(token, (userId: string) => joinGame({ data: { token, userId } }))
   return (
     <div className="mb-6">
-      <p className="mb-3 text-sm text-faint">You are not in this game.</p>
+      <p className="mb-3 text-sm text-faint">This game started without you.</p>
       <button type="button" className="button-primary" disabled={join.isPending} onClick={() => join.mutate(viewerId)}>
-        {join.isPending ? 'Joining…' : "I'm playing too"}
+        {join.isPending ? 'Joining…' : 'Play in this game'}
       </button>
       {join.isError && <p className="mt-3 text-sm text-seal">{errorMessage(join.error)}</p>}
     </div>
@@ -147,7 +148,7 @@ function SealForm({ token, roster }: { token: string; roster: ReactNode }) {
         {seal.isPending ? 'Sealing…' : 'Seal it'}
       </button>
       {seal.isError && <p className="text-sm text-seal">{errorMessage(seal.error)}</p>}
-      <p className="text-sm text-faint">Hidden from everyone until the last list is in.</p>
+      <p className="text-sm text-faint">Nobody sees it until the last list is in — including whoever started the game.</p>
       {roster}
     </form>
   )
@@ -162,7 +163,10 @@ function Sealed({ token, game, roster }: { token: string; game: GameView; roster
   return (
     <section className="space-y-4">
       <div className="panel overflow-hidden">
-        <p className="border-b border-edge px-4 py-3 font-display text-sm tracking-[0.14em] text-moss uppercase">Sealed</p>
+        <p className="flex items-center gap-2.5 border-b border-edge px-4 py-3 font-display text-sm tracking-[0.14em] text-moss uppercase">
+          <span className="stamp-sealed" aria-hidden="true" />
+          Sealed
+        </p>
         <pre className="overflow-x-auto px-4 py-4 font-mono text-sm leading-relaxed whitespace-pre-wrap">{mine.list}</pre>
       </div>
       <button type="button" className="button-quiet" onClick={() => setReplacing(true)}>
@@ -222,7 +226,10 @@ function RosterRow({ entry, canDrop, dropping, onDrop }: { entry: EntryView; can
         {entry.name}
         {entry.isViewer && <span className="ml-2 text-xs tracking-[0.14em] text-faint uppercase">you</span>}
       </span>
-      <span className={`font-display text-xs tracking-[0.14em] uppercase ${entry.sealed ? 'text-moss' : 'text-faint'}`}>
+      <span
+        className={`flex items-center gap-2 font-display text-xs tracking-[0.14em] uppercase ${entry.sealed ? 'text-moss' : 'text-faint'}`}
+      >
+        <span className={entry.sealed ? 'stamp-sealed' : 'stamp-waiting'} aria-hidden="true" />
         {entry.sealed ? 'sealed' : 'waiting'}
       </span>
       {!entry.sealed && !entry.isViewer && canDrop && (
@@ -343,7 +350,7 @@ function CrewFooter({ token, crew, viewerId }: { token: string; crew: CrewView; 
       {remove.isError && <p className="text-sm text-seal">{errorMessage(remove.error)}</p>}
       <div className="flex flex-wrap items-center gap-3 pt-2">
         <CopyButton value={`${origin}/c/${token}`} label="Copy crew link" description="Copy the link to this crew" />
-        <p className="text-sm text-faint">Send it once. Everyone signs in and joins.</p>
+        <p className="text-sm text-faint">Send it once. Everyone signs in and joins themselves.</p>
       </div>
     </section>
   )

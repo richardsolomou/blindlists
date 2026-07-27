@@ -16,12 +16,19 @@ function Home() {
   const { data: viewer } = useSuspenseQuery(meQuery())
   return (
     <main>
-      <h1 className="text-4xl">Warhammer 40,000 lists, sealed until everyone is in</h1>
-      <p className="mt-3 mb-9 max-w-lg text-faint">
-        Every player pastes their army list hidden. When the last one lands, all of them are revealed at once and locked — nobody reads
-        yours first and tailors a detachment to beat it.
-      </p>
-      {viewer ? <YourCrews /> : <SignedOut />}
+      {viewer ? (
+        <YourCrews />
+      ) : (
+        <>
+          <p className="eyebrow">Warhammer 40,000</p>
+          <h1 className="mt-2 text-4xl leading-[1.1]">Nobody sees a list until everybody has sealed one</h1>
+          <p className="mt-4 mb-9 max-w-lg text-faint">
+            Paste your army list. It stays hidden — from your opponents and from whoever set the game up — until the last one lands. Then
+            they all open at once and none of them can change.
+          </p>
+          <SignedOut />
+        </>
+      )}
     </main>
   )
 }
@@ -30,9 +37,11 @@ function SignedOut() {
   return (
     <section>
       <Link to="/signin" className="button-primary">
-        Sign in to start
+        Get started
       </Link>
-      <p className="mt-4 text-sm text-faint">An account keeps your crews and your lists together on every device you use.</p>
+      <p className="mt-4 text-sm text-faint">
+        One account, one link to your group, and every game after that is waiting in the same place.
+      </p>
     </section>
   )
 }
@@ -51,25 +60,38 @@ function YourCrews() {
     },
   })
 
+  const hasCrews = crews !== null && crews.length > 0
+
   return (
     <div className="space-y-10">
-      {crews && crews.length > 0 && (
-        <section>
-          <h2 className="label">Your crews</h2>
+      <section>
+        <h2 className="label">Your crews</h2>
+        {hasCrews ? (
           <ul className="divide-y divide-edge border-y border-edge">
             {crews.map((crew) => (
-              <li key={crew.token} className="flex items-center gap-3 py-3">
-                <Link to="/c/$token" params={{ token: crew.token }} className="min-w-0 flex-1 truncate hover:text-brass">
-                  {crew.name}
+              <li key={crew.token} className="flex items-center gap-3">
+                <Link
+                  to="/c/$token"
+                  params={{ token: crew.token }}
+                  className="flex min-w-0 flex-1 items-center gap-3 py-3.5 transition-colors hover:text-brass"
+                >
+                  <span className="min-w-0 flex-1 truncate">{crew.name}</span>
+                  {crew.needsList && (
+                    <span className="flex items-center gap-2 font-display text-xs tracking-[0.14em] text-brass uppercase">
+                      <span className="stamp-revealed" aria-hidden="true" />
+                      list due
+                    </span>
+                  )}
                 </Link>
-                {crew.needsList && <span className="font-display text-xs tracking-[0.14em] text-brass uppercase">list due</span>}
               </li>
             ))}
           </ul>
-        </section>
-      )}
+        ) : (
+          <p className="text-sm text-faint">None yet. Start one below, or open the link a friend sent you and join theirs.</p>
+        )}
+      </section>
 
-      <section>
+      <section className="border-t border-edge pt-8">
         <h2 className="label">Start a crew</h2>
         <form
           className="flex flex-wrap gap-2"

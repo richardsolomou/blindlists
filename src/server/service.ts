@@ -2,6 +2,7 @@ import { MEMBERS_MAX, PLAYERS_MIN, gameView, normalizeList } from '../core/game'
 import type { CrewSummary, CrewView, GameView } from '../core/game'
 import type { Repository } from '../db/repository'
 import { createId, createToken } from './crypto'
+import type { Notifier } from './notify'
 
 /**
  * Every rule that keeps a game fair lives here or in `core/game`; the HTTP
@@ -15,6 +16,7 @@ export class SealedListsService {
   constructor(
     private readonly repository: Repository,
     private readonly clock: () => number = Date.now,
+    private readonly notifier?: Notifier,
   ) {}
 
   createCrew(userId: string, name: string) {
@@ -57,10 +59,21 @@ export class SealedListsService {
 
   removeMember(token: string, userId: string, targetUserId: string): CrewView {
     const { crew } = this.requireMembership(token, userId)
+    const collecting = this.repository.activeGame(crew.id)
     const result = this.repository.removeMember({ crewId: crew.id, userId: targetUserId, now: this.clock() })
     if (result === 'unknown') throw notFound()
     if (result === 'too-few') throw new Response(`a crew keeps at least ${PLAYERS_MIN} players`, { status: 409 })
+    if (collecting) this.notifyIfRevealed(crew.id, collecting.id)
     return this.crewView(token, userId)
+  }
+
+  emailPreference(userId: string) {
+    return { gameEmails: this.repository.gameEmails(userId) }
+  }
+
+  setEmailPreference(userId: string, gameEmails: boolean) {
+    this.repository.setGameEmails(userId, gameEmails)
+    return { gameEmails }
   }
 
   gameView(token: string, gameId: string, userId: string): GameView {
@@ -77,6 +90,7 @@ export class SealedListsService {
     if (playing.length < PLAYERS_MIN) throw new Response(`a game needs at least ${PLAYERS_MIN} players`, { status: 400 })
     const result = this.repository.createGame({ id: createId(), crewId: crew.id, userIds, now: this.clock() })
     if (result === 'in-progress') throw new Response('this crew already has a game running', { status: 409 })
+    this.notifier?.gameStarted(result.id, userId)
     return this.crewView(token, userId)
   }
 
@@ -89,6 +103,7 @@ export class SealedListsService {
     const result = this.repository.sealList({ gameId: game.id, userId, list: text, now: this.clock() })
     if (result === 'unknown') throw new Response('you are not playing in this game', { status: 403 })
     if (result === 'locked') throw locked()
+    this.notifyIfRevealed(crew.id, game.id)
     return this.crewView(token, userId)
   }
 
@@ -114,7 +129,14 @@ export class SealedListsService {
     if (result === 'locked') throw locked()
     if (result === 'sealed') throw new Response('that player has already sealed a list', { status: 409 })
     if (result === 'too-few') throw new Response(`a game needs at least ${PLAYERS_MIN} players`, { status: 409 })
+    this.notifyIfRevealed(crew.id, game.id)
     return this.crewView(token, userId)
+  }
+
+  /** Dropping the last outstanding player reveals a game too, so this runs after any of them. */
+  private notifyIfRevealed(crewId: string, gameId: string) {
+    const game = this.repository.gameById(crewId, gameId)
+    if (game && game.revealedAt !== null) this.notifier?.gameRevealed(gameId)
   }
 
   private crew(token: string) {

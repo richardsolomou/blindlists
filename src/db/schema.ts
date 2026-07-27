@@ -123,6 +123,14 @@ export const games = sqliteTable(
   (table) => [index('games_crew_id_index').on(table.crewId)],
 )
 
+/** Whether we may email someone about their games. Absent row means yes. */
+export const emailPreferences = sqliteTable('email_preferences', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  gameEmails: integer('game_emails', { mode: 'boolean' }).notNull(),
+})
+
 /**
  * One player's slot in one game, keyed to the account rather than to crew
  * membership: leaving a crew must not erase your lists from games that have
@@ -142,4 +150,4 @@ export const entries = sqliteTable(
   (table) => [primaryKey({ columns: [table.gameId, table.userId] })],
 )
 
-export const schema = { user, session, account, verification, rateLimit, crews, crewMembers, games, entries }
+export const schema = { user, session, account, verification, rateLimit, crews, crewMembers, games, entries, emailPreferences }

@@ -4,9 +4,11 @@ import { openDatabase, type SealedListsDatabase } from '../db/connection'
 import { Repository } from '../db/repository'
 import { user } from '../db/schema'
 import { SealedListsService } from './service'
+import type { Notifier } from './notify'
 
 let database: SealedListsDatabase
 let service: SealedListsService
+let notified: string[]
 let now = 1000
 
 /** Accounts are better-auth's to create; tests only need the rows to exist. */
@@ -19,8 +21,13 @@ function makeUser(id: string, name: string) {
 
 beforeEach(() => {
   now = 1000
+  notified = []
   database = openDatabase(':memory:')
-  service = new SealedListsService(new Repository(database), () => now)
+  const notifier: Notifier = {
+    gameStarted: (gameId, startedBy) => notified.push(`started:${startedBy}`),
+    gameRevealed: () => notified.push('revealed'),
+  }
+  service = new SealedListsService(new Repository(database), () => now, notifier)
   for (const name of ['Alex', 'Rich', 'Dan', 'Sam']) makeUser(name.toLowerCase(), name)
 })
 
@@ -319,5 +326,68 @@ describe('removeMember', () => {
   it('refuses someone who is not in the crew', () => {
     const { token } = crewWithGame()
     expect(rejection(() => service.removeMember(token, 'sam', 'dan'))).toBe(403)
+  })
+})
+
+describe('notifications', () => {
+  it('announces a game once it starts', () => {
+    crewWithGame()
+    expect(notified).toEqual(['started:alex'])
+  })
+
+  it('says nothing while lists are still coming in', () => {
+    const { token } = crewWithGame()
+    notified.length = 0
+    service.sealList(token, 'alex', 'Alex list')
+    expect(notified).toEqual([])
+  })
+
+  it('announces the reveal when the last list lands', () => {
+    const { token } = crewWithGame()
+    notified.length = 0
+    for (const id of ['alex', 'rich', 'dan']) service.sealList(token, id, `${id} list`)
+    expect(notified).toEqual(['revealed'])
+  })
+
+  it('announces the reveal when dropping the last outstanding player causes it', () => {
+    const { token } = crewWithGame()
+    service.sealList(token, 'alex', 'Alex list')
+    service.sealList(token, 'rich', 'Rich list')
+    notified.length = 0
+    service.dropPlayer(token, 'alex', 'dan')
+    expect(notified).toEqual(['revealed'])
+  })
+
+  it('announces the reveal when removing the last outstanding player causes it', () => {
+    const { token } = crewWithGame()
+    service.sealList(token, 'alex', 'Alex list')
+    service.sealList(token, 'rich', 'Rich list')
+    notified.length = 0
+    service.removeMember(token, 'alex', 'dan')
+    expect(notified).toEqual(['revealed'])
+  })
+
+  it('does not announce a reveal that has not happened', () => {
+    const { token } = crewWithGame()
+    notified.length = 0
+    service.dropPlayer(token, 'alex', 'dan')
+    expect(notified).toEqual([])
+  })
+})
+
+describe('email preference', () => {
+  it('defaults to on', () => {
+    expect(service.emailPreference('alex').gameEmails).toBe(true)
+  })
+
+  it('remembers being turned off', () => {
+    service.setEmailPreference('alex', false)
+    expect(service.emailPreference('alex').gameEmails).toBe(false)
+  })
+
+  it('can be turned back on', () => {
+    service.setEmailPreference('alex', false)
+    service.setEmailPreference('alex', true)
+    expect(service.emailPreference('alex').gameEmails).toBe(true)
   })
 })

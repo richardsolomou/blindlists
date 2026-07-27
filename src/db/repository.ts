@@ -2,7 +2,7 @@ import { and, asc, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm'
 import { MEMBERS_MAX, allSealed } from '../core/game'
 import type { CrewMember, CrewRecord, EntryRecord, GameRecord } from '../core/game'
 import type { SealedListsDatabase } from './connection'
-import { crewMembers, crews, entries, games, user } from './schema'
+import { crewMembers, crews, emailPreferences, entries, games, user } from './schema'
 
 type Crew = { crew: CrewRecord; members: CrewMember[] }
 
@@ -184,6 +184,40 @@ export class Repository {
       this.revealIfComplete(tx, input.gameId, input.now)
       return 'dropped'
     })
+  }
+
+  /** Everyone in a game who has said yes to email, minus one person to skip. */
+  mailableInGame(gameId: string, except?: string) {
+    return this.database
+      .select({ userId: user.id, name: user.name, email: user.email, gameEmails: emailPreferences.gameEmails })
+      .from(entries)
+      .innerJoin(user, eq(user.id, entries.userId))
+      .leftJoin(emailPreferences, eq(emailPreferences.userId, entries.userId))
+      .where(eq(entries.gameId, gameId))
+      .all()
+      .filter((row) => row.gameEmails !== false && row.userId !== except)
+      .map((row) => ({ userId: row.userId, name: row.name, email: row.email }))
+  }
+
+  gameEmails(userId: string) {
+    return this.database.select().from(emailPreferences).where(eq(emailPreferences.userId, userId)).get()?.gameEmails ?? true
+  }
+
+  setGameEmails(userId: string, gameEmails: boolean) {
+    this.database
+      .insert(emailPreferences)
+      .values({ userId, gameEmails })
+      .onConflictDoUpdate({ target: emailPreferences.userId, set: { gameEmails } })
+      .run()
+  }
+
+  crewOfGame(gameId: string) {
+    return this.database
+      .select({ id: crews.id, name: crews.name, token: crews.token })
+      .from(games)
+      .innerJoin(crews, eq(crews.id, games.crewId))
+      .where(eq(games.id, gameId))
+      .get()
   }
 
   private revealIfComplete(tx: Transaction, gameId: string, now: number) {

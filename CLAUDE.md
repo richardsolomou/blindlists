@@ -28,6 +28,9 @@ Sealed army list submission for Warhammer 40,000, and nothing else. Lists are op
 - **Nothing expires.** Lists are text and text is cheap, so there is no retention sweep and no scheduled deletion anywhere; games and crews stay until someone deletes them. Do not reintroduce a TTL without being asked. Cascades still matter: `entries` hangs off `games`, and `crew_members` off `crews`, so removing a parent takes its children.
 - **Server functions wrap handlers in `rpc()`** — a thrown `Response` otherwise reaches the client as a successful result — and every mutation calls `requireMutationOrigin()` first. CSRF protection is per-function, not middleware.
 - **Never log a crew token or a session cookie**, and never put either in an error message.
+- **Every optional dependency degrades honestly.** No SMTP settings means no email _and_ no password-reset link offered; no provider credentials means no provider button. Read what is available through `signInOptions`, never assume it in the UI.
+- **Notifications are fire and forget.** `buildNotifier` swallows and logs failures so a game never fails because a mail server is down, and the service calls it only after the repository has committed.
+- **Motion never hides content.** The reveal animation starts at `opacity: 0.35`, not 0, so a card stays readable if the animation never runs. Same rule for anything added later.
 - Migrations are generated (`pnpm db:generate`), never hand-edited once applied. `drizzle/` is copied into `.output/server/drizzle` by the build so the production server can run them.
 
 ## Tests

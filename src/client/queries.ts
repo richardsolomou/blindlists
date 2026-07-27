@@ -1,6 +1,6 @@
 import { queryOptions } from '@tanstack/react-query'
 import type { CrewView } from '../core/game'
-import { crew, game, me, myCrews } from '../server/fns'
+import { crew, emailPreference, game, me, myCrews, signInOptions } from '../server/fns'
 
 // While a game is collecting the page polls, so everyone sees the reveal land
 // without refreshing; a revealed game never changes again.
@@ -8,6 +8,10 @@ const collecting = (query: { state: { data?: CrewView | 'signed-out' | null } })
   typeof query.state.data === 'object' && query.state.data?.currentGame?.status === 'collecting' ? 5000 : false
 
 export const meQuery = () => queryOptions({ queryKey: ['me'], queryFn: () => me() })
+
+export const signInOptionsQuery = () => queryOptions({ queryKey: ['sign-in-options'], queryFn: () => signInOptions(), staleTime: Infinity })
+
+export const emailPreferenceQuery = () => queryOptions({ queryKey: ['email-preference'], queryFn: () => emailPreference() })
 
 export const myCrewsQuery = () => queryOptions({ queryKey: ['my-crews'], queryFn: () => myCrews() })
 

@@ -1,5 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
+import { z } from 'zod'
 import { app } from './app'
+import { configuredProviders } from './auth'
 import { requireMutationOrigin } from './mutationOrigin'
 import { rpc } from './rpc'
 import { createCrewSchema, gameSchema, memberSchema, sealListSchema, startGameSchema, tokenSchema } from './schemas'
@@ -16,6 +18,28 @@ function orNull<T>(work: () => T) {
 }
 
 export const me = createServerFn({ method: 'GET' }).handler(() => rpc(() => currentUser()))
+
+/** The sign-in page only offers what the deployment has credentials for. */
+export const signInOptions = createServerFn({ method: 'GET' }).handler(() =>
+  rpc(() => ({ providers: configuredProviders(), emailConfigured: app().emailConfigured })),
+)
+
+export const emailPreference = createServerFn({ method: 'GET' }).handler(() =>
+  rpc(async () => {
+    const viewer = await currentUser()
+    return viewer ? app().service.emailPreference(viewer.id) : null
+  }),
+)
+
+export const setEmailPreference = createServerFn({ method: 'POST' })
+  .validator(z.object({ gameEmails: z.boolean() }))
+  .handler(({ data }) =>
+    rpc(async () => {
+      requireMutationOrigin()
+      const viewer = await requireUser()
+      return app().service.setEmailPreference(viewer.id, data.gameEmails)
+    }),
+  )
 
 export const myCrews = createServerFn({ method: 'GET' }).handler(() =>
   rpc(async () => {

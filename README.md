@@ -6,7 +6,7 @@ Paste the text your list builder already exports — the Warhammer 40,000 app, N
 
 ## How it works
 
-Everyone makes an account, which is an email and a password and nothing else. You set up a **crew** — its name — and get a single link. Send that to the group once; they sign in and join, and every game after that is waiting at the same place for all of you.
+Everyone makes an account — email and password, or one tap with Google or Discord where the instance has them configured. You set up a **crew** — its name — and get a single link. Send that to the group once; they sign in and join, and every game after that is waiting at the same place for all of you.
 
 1. Sign in. Your name is what the rest of the crew sees, and your lists follow the account onto any device.
 2. Anyone in the crew starts a game and picks who is playing tonight.
@@ -14,6 +14,8 @@ Everyone makes an account, which is an email and a password and nothing else. Yo
 4. When the last list is sealed, every list is revealed together and permanently locked.
 
 Everybody opens the same link for every future game — no new links, ever. A crew runs one game at a time, and finished games stay on the page as history. Your home page lists your crews and flags any that are waiting on a list from you.
+
+Two emails per game, if the instance can send them and you have not turned them off: one when a game starts and your list is due, one when the last list lands. Nothing else.
 
 While a game is still collecting you can change who is in it: join a game you were left out of, add anyone from the crew, or drop a no-show — which reveals the game if everyone else is already in. Someone who has sealed cannot be dropped, and a revealed game can never be edited.
 
@@ -29,7 +31,7 @@ It is all text, so it all stays. A season of games for a crew of six is a few hu
 
 ## Trust model
 
-Accounts are real: [better-auth](https://better-auth.com) with email and password, argon-grade hashing, sessions in an httpOnly cookie, and rate limits on the sign-in and sign-up routes. You are only ever one player, and only your own account can seal your list.
+Accounts are real: [better-auth](https://better-auth.com) with email and password plus optional Google and Discord, sessions in an httpOnly cookie, and rate limits on sign-in, sign-up and password reset. Signing in with a provider that carries the same address links to the existing account rather than making a second one. You are only ever one player, and only your own account can seal your list.
 
 The crew link is an invitation, not a credential. Anyone holding it can see the crew's name and who is in it, and can join — so keep it to the group. Joining is all it grants: a link holder who has not joined sees no game, no roster status and no lists, and cannot open a game by its id. While a game is collecting the server hands nobody another player's list, and once revealed a list can never be edited. What it cannot guarantee is a hostile operator — lists sit in plain text in the server's SQLite database, so whoever runs the deployment could read one before the reveal. That is fine among friends running their own instance; an escrow that survives a hostile operator needs a client-side commit–reveal scheme, which this deliberately is not.
 
@@ -56,12 +58,15 @@ docker compose up -d
 
 Put it behind a reverse proxy that forwards `X-Forwarded-Host` and `X-Forwarded-Proto`; set `APP_URL` when it cannot. Sessions are signed with a secret generated into `/data/auth.secret` on first boot — back that file up with the database, or set `AUTH_SECRET` yourself. Health check: `GET /api/health`.
 
+Everything else in `.env.example` is optional and degrades honestly. With no SMTP settings the app sends no email at all and stops offering password reset, since it could not deliver one. Each social provider appears on the sign-in page only when both halves of its credential are present; their callback URLs are `/api/auth/callback/google` and `/api/auth/callback/discord`.
+
 ## Layout
 
 - `src/core/game.ts` — the whole domain in one file: limits, retention, list normalization, and every visibility decision (`gameView`).
 - `src/db` — Drizzle schema, migrations, and the repository that owns the reveal transaction.
 - `src/server` — service, server functions, and the same-origin guard for mutations.
-- `src/server/auth.ts` — the better-auth instance, and the secret it keeps beside the database.
+- `src/server/auth.ts` — the better-auth instance, its providers, and the secret it keeps beside the database.
+- `src/adapters/email.ts`, `src/server/emails.ts`, `src/server/notify.ts` — SMTP delivery, the four messages, and what triggers them.
 - `src/server/session.ts` — reads the signed-in user for server functions.
 - `src/client`, `src/routes` — query definitions, four components, and four pages: sign in, your crews, the crew page everything happens on, and a past game.
 

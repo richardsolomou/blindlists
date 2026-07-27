@@ -1,21 +1,21 @@
 import type { GameView } from '../../core/game'
 
 export function GameHeader({ game }: { game: GameView }) {
+  const revealed = game.status === 'revealed'
   return (
     <header className="mb-5">
-      <h2 className="text-2xl">Game {game.number}</h2>
-      <p className="mt-1 font-display text-sm tracking-[0.14em] uppercase">
-        {game.status === 'revealed' ? (
-          <span className="text-brass">Revealed &amp; locked</span>
+      <p className="eyebrow">Game {game.number}</p>
+      <h2 className="mt-1 flex items-center gap-2.5 text-2xl">
+        <span className={revealed ? 'stamp-revealed' : 'stamp-waiting'} aria-hidden="true" />
+        {revealed ? (
+          <span className="text-brass">Revealed</span>
         ) : (
-          <span className="text-faint">
-            <span className="text-parchment">
-              {game.sealed} of {game.total}
-            </span>{' '}
-            sealed
+          <span>
+            {game.sealed} of {game.total} sealed
           </span>
         )}
-      </p>
+      </h2>
+      {!revealed && <p className="mt-1 text-sm text-faint">Every list opens the moment the last one lands.</p>}
     </header>
   )
 }
