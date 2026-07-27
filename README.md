@@ -23,9 +23,9 @@ There are no accounts, no settings, and nothing to administer.
 
 ## Storage
 
-An account is a name, an email and a password hash. A crew is its name, its link token and a row per member — a few hundred bytes, kept as long as the crew uses it so the link never dies. A game is a number, its players, and their list text: a few KB. Nothing else is kept — no accounts, no email, and no timestamps beyond when a game started and revealed. List text is stored exactly as it will be shown, normalized to LF line endings with trailing whitespace and surrounding blank lines removed.
+An account is a name, an email and a password hash. A crew is its name, its link token and a row per member. A game is a number, its players, and their list text.
 
-Whole games are deleted 30 days after they start, taking the lists with them and leaving the crew intact. The sweep runs at boot and hourly after that (`RETENTION_DAYS` in `src/core/game.ts`), so a public instance stays flat rather than growing forever.
+It is all text, so it all stays. A season of games for a crew of six is a few hundred KB, which is not worth expiring, and a list you sealed two years ago is still there to argue about. A game is a number, its players, and their list text: a few KB. Nothing else is kept — no analytics, no logs of who looked at what. List text is stored exactly as it will be shown, normalized to LF line endings with trailing whitespace and surrounding blank lines removed.
 
 ## Trust model
 

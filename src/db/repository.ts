@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNotNull, isNull, lt, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm'
 import { MEMBERS_MAX, allSealed } from '../core/game'
 import type { CrewMember, CrewRecord, EntryRecord, GameRecord } from '../core/game'
 import type { SealedListsDatabase } from './connection'
@@ -184,11 +184,6 @@ export class Repository {
       this.revealIfComplete(tx, input.gameId, input.now)
       return 'dropped'
     })
-  }
-
-  /** Retention sweep: a whole game disappears once it ages out, its entries cascading with it. */
-  deleteGamesCreatedBefore(cutoff: number) {
-    return this.database.delete(games).where(lt(games.createdAt, cutoff)).run().changes
   }
 
   private revealIfComplete(tx: Transaction, gameId: string, now: number) {

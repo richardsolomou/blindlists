@@ -5,7 +5,7 @@ import { rpc } from './rpc'
 import { createCrewSchema, gameSchema, memberSchema, sealListSchema, startGameSchema, tokenSchema } from './schemas'
 import { currentUser, requireUser } from './session'
 
-/** Reads answer null when the link is wrong or expired, so the route can render a real 404. */
+/** Reads answer null for a link that points at nothing, so the route can render a real 404. */
 function orNull<T>(work: () => T) {
   try {
     return work()

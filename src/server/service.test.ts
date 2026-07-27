@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { RETENTION_MS, normalizeList } from '../core/game'
+import { normalizeList } from '../core/game'
 import { openDatabase, type SealedListsDatabase } from '../db/connection'
 import { Repository } from '../db/repository'
 import { user } from '../db/schema'
@@ -319,35 +319,5 @@ describe('removeMember', () => {
   it('refuses someone who is not in the crew', () => {
     const { token } = crewWithGame()
     expect(rejection(() => service.removeMember(token, 'sam', 'dan'))).toBe(403)
-  })
-})
-
-describe('purgeExpiredGames', () => {
-  it('leaves a game alone before it ages out', () => {
-    const { token } = crewWithGame()
-    now += RETENTION_MS - 1
-    service.purgeExpiredGames()
-    expect(service.crewView(token, 'alex').currentGame?.status).toBe('collecting')
-  })
-
-  it('deletes a game once it has aged out', () => {
-    const { token } = crewWithGame()
-    now += RETENTION_MS + 1
-    service.purgeExpiredGames()
-    expect(service.crewView(token, 'alex').currentGame).toBeNull()
-  })
-
-  it('keeps the crew and its members so the link still works', () => {
-    const { token } = crewWithGame()
-    now += RETENTION_MS + 1
-    service.purgeExpiredGames()
-    expect(service.crewView(token, 'alex').members.map((member) => member.name)).toEqual(['Alex', 'Dan', 'Rich'])
-  })
-
-  it('reports how many games it removed', () => {
-    crewWithGame()
-    service.createCrew('sam', 'Another crew')
-    now += RETENTION_MS + 1
-    expect(service.purgeExpiredGames()).toBe(1)
   })
 })

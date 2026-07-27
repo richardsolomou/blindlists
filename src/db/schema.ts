@@ -120,7 +120,7 @@ export const games = sqliteTable(
     createdAt: integer('created_at').notNull(),
     revealedAt: integer('revealed_at'),
   },
-  (table) => [index('games_crew_id_index').on(table.crewId), index('games_created_at_index').on(table.createdAt)],
+  (table) => [index('games_crew_id_index').on(table.crewId)],
 )
 
 /**

@@ -1,0 +1,1 @@
+DROP INDEX `games_created_at_index`;

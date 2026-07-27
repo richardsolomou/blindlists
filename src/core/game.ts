@@ -5,10 +5,6 @@ export const NAME_MAX_LENGTH = 40
 export const LIST_MAX_LENGTH = 10_000
 export const PASSWORD_MIN_LENGTH = 10
 
-/** Games are deleted this long after they start, so storage stays flat. */
-export const RETENTION_DAYS = 30
-export const RETENTION_MS = RETENTION_DAYS * 24 * 60 * 60 * 1000
-
 export type GameStatus = 'collecting' | 'revealed'
 
 export type CrewRecord = {

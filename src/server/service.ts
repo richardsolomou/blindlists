@@ -1,4 +1,4 @@
-import { MEMBERS_MAX, PLAYERS_MIN, RETENTION_MS, gameView, normalizeList } from '../core/game'
+import { MEMBERS_MAX, PLAYERS_MIN, gameView, normalizeList } from '../core/game'
 import type { CrewSummary, CrewView, GameView } from '../core/game'
 import type { Repository } from '../db/repository'
 import { createId, createToken } from './crypto'
@@ -117,10 +117,6 @@ export class SealedListsService {
     return this.crewView(token, userId)
   }
 
-  purgeExpiredGames() {
-    return this.repository.deleteGamesCreatedBefore(this.clock() - RETENTION_MS)
-  }
-
   private crew(token: string) {
     const found = this.repository.crewByToken(token)
     if (!found) throw notFound()
@@ -134,5 +130,5 @@ export class SealedListsService {
   }
 }
 
-const notFound = () => new Response('this link is wrong, or what it pointed at has expired', { status: 404 })
+const notFound = () => new Response('that link does not point at anything', { status: 404 })
 const locked = () => new Response('the lists are revealed and locked', { status: 409 })

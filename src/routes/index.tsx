@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-import { CREW_NAME_MAX_LENGTH, RETENTION_DAYS } from '../core/game'
+import { CREW_NAME_MAX_LENGTH } from '../core/game'
 import { errorMessage } from '../client/queryClient'
 import { meQuery, myCrewsQuery } from '../client/queries'
 import { createCrew } from '../server/fns'
@@ -32,9 +32,7 @@ function SignedOut() {
       <Link to="/signin" className="button-primary">
         Sign in to start
       </Link>
-      <p className="mt-4 text-sm text-faint">
-        An account keeps your crews and your lists together on every device you use. Games are kept for {RETENTION_DAYS} days.
-      </p>
+      <p className="mt-4 text-sm text-faint">An account keeps your crews and your lists together on every device you use.</p>
     </section>
   )
 }
@@ -94,8 +92,7 @@ function YourCrews() {
         </form>
         {create.isError && <p className="mt-3 text-sm text-seal">{errorMessage(create.error)}</p>}
         <p className="mt-4 text-sm text-faint">
-          You get one link to send your friends. They sign in once and join, and every game from then on is waiting there. Games are kept
-          for {RETENTION_DAYS} days.
+          You get one link to send your friends. They sign in once and join, and every game from then on is waiting there.
         </p>
       </section>
     </div>
