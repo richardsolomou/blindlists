@@ -1,48 +1,57 @@
+<div align="center">
+  <img src="public/favicon.svg" width="80" alt="Sealed Lists logo" />
+
 # Sealed Lists
 
-Sealed army list submission for Warhammer 40,000. Every player pastes their list hidden; the moment the last one lands, all of them are revealed at once and locked. Nobody gets to read an opponent's list first and tailor a detachment to beat it.
+**Reveal every Warhammer 40,000 army list at the same time.**
 
-Paste the text your list builder already exports — the Warhammer 40,000 app, New Recruit, BattleScribe, anything. Sealed Lists never parses, validates, or scores a list; it only holds the text you gave it and proves it did not change.
+[sealed-lists.ras.sh](https://sealed-lists.ras.sh)
 
-## How it works
+[![Build](https://img.shields.io/github/actions/workflow/status/richardsolomou/sealed-lists/ci.yml?branch=main)](https://github.com/richardsolomou/sealed-lists/actions/workflows/ci.yml) [![License](https://img.shields.io/github/license/richardsolomou/sealed-lists)](LICENSE)
 
-Everyone makes an account — email and password, or one tap with Google or Discord where the instance has them configured. You set up a **group** — its name — and get a single link. Send that to the group once; they sign in and join, and every game after that is waiting at the same place for all of you.
+Nobody gets to read an opponent's list first and tailor their own to beat it. Players submit in private; the final submission reveals and locks every list together.
+</div>
 
-1. Sign in. Your name is what the rest of the group sees, and your lists follow the account onto any device.
-2. Anyone in the group makes a game and picks who is playing tonight.
-3. Each player pastes their army list and seals it. What you type is kept as you go, so a closed tab or a different device picks up where you left off.
-4. Change your mind and Edit hands your list back with the text you wrote. Editing unseals it, so the game cannot finish while you are part way through — there is no race against someone else sealing.
-5. When the last list is sealed, every list is revealed together and permanently locked.
+## How it works ✨
 
-Everybody opens the same link for every future game — no new links, ever. A group runs one game at a time, and finished games stay on the page as history. Your home page lists your groups and flags any that are waiting on a list from you.
+1. **Create a group** and share its permanent invite link.
+2. **Choose the players** for the next game.
+3. **Paste and seal lists** exported by any list-building app.
+4. **Edit safely** by unsealing before the reveal, with drafts saved automatically.
+5. **Reveal together** when the final player seals their list.
 
-An open group page keeps itself current: a list sealed on someone else's phone moves the count on yours, and the reveal lands on every screen at once without anyone refreshing. It also shows who else has the page open and who is writing right now — names only, never a word of what they are typing.
+The group page updates live across every device and shows who is present or typing. Finished games remain as history, and optional email notifications tell players when a list is due or the reveal is ready.
 
-Two emails per game, if the instance can send them and you have not turned them off: one when a game starts and your list is due, one when the last list lands. Nothing else.
+## Designed for one job 🎯
 
-While a game is still collecting you can change who is in it: join a game you were left out of, add anyone from the group, or drop a no-show — which reveals the game if everyone else is already in. Someone who has sealed cannot be dropped, and a revealed game can never be edited.
+Sealed Lists stores opaque text. It does not parse lists, validate rules, calculate points, understand factions, or build armies.
 
-Players come and go from the group too. Anyone with the link can join; anyone in the group can remove a member or leave themselves. Removal takes them off the roster and out of a game still collecting, but leaves their lists in games that already revealed: history stays true. The last player cannot leave, since that would strand the group with nobody in it.
+- One reusable link per group, with no owner or administrator role.
+- Email and password accounts, with optional Google and Discord sign-in.
+- Player changes while a game is collecting, including joining late or dropping a no-show.
+- Immutable revealed games, with group-controlled deletion when history is no longer wanted.
+- No analytics, list-access logs, scheduled expiry, or hidden retention policy.
 
-Anyone in the group can delete the whole group, which ends it for everyone in it and takes every game with it — that is also how the last player left gets out, since they cannot leave a group they are alone in. Anyone in the group can delete a game, before or after the reveal, which throws away every list in it for everybody. Delete a game still collecting to call one off — that is the only way to abandon a game nobody is going to finish, because a group runs one at a time. Delete a finished one to clear it out of history. Your name is on the account page and changing it changes what the group sees next to your lists, including in games already played.
+## Trust model 🔒
 
-There is nothing to administer: no roles, no owner, no instance settings. Anyone in a group can do anything to it.
+The group link is an invitation, not a login. Anyone holding it can see the group name and members and can join, but only members can see games. Before a reveal, a player receives only their own list and draft; after the reveal, participating players receive the locked lists.
 
-## Storage
+The server stores list text in plain text. A deployment operator with database access can read it before the reveal, so Sealed Lists is suitable for friends who trust whoever hosts their instance. Protecting lists from the operator would require a client-side commit–reveal system and is outside this project's scope.
 
-An account is a name, an email and a password hash. A group is its name, its link token and a row per member. A game is a number, its players, and their list text — plus, while someone is still writing, the draft they have not sealed yet. Who has a page open and who is typing is held in memory only: it describes a browser tab, so it has no business outliving one.
+## Self-hosting 🐳
 
-It is all text, so it all stays. A season of games for a group of six is a few hundred KB, which is not worth expiring, and a list you sealed two years ago is still there to argue about. A game is a number, its players, and their list text: a few KB. Nothing else is kept — no analytics, no logs of who looked at what. List text is stored exactly as it will be shown, normalized to LF line endings with trailing whitespace and surrounding blank lines removed.
+The only persistent state is `/data`, which contains the SQLite database and generated session secret.
 
-## Trust model
+```sh
+cp .env.example .env
+docker compose up -d
+```
 
-Accounts are real: [better-auth](https://better-auth.com) with email and password plus optional Google and Discord, sessions in an httpOnly cookie, and rate limits on sign-in, sign-up and password reset. Signing in with a provider that carries the same address links to the existing account rather than making a second one. You are only ever one player, and only your own account can seal your list.
+Put the app behind a reverse proxy, keep `/data` on a persistent volume, and back it up regularly. See the [deployment guide](docs/deployment.md) for proxy headers, canonical URLs, authentication providers, email, health checks, and backups.
 
-The group link is an invitation, not a credential. Anyone holding it can see the group's name and who is in it, and can join — so keep it to the group. Joining is all it grants: a link holder who has not joined sees no game, no roster status and no lists, and cannot open a game by its id. While a game is collecting the server hands nobody another player's list, and once revealed a list can never be edited. What it cannot guarantee is a hostile operator — lists sit in plain text in the server's SQLite database, so whoever runs the deployment could read one before the reveal. That is fine among friends running their own instance; an escrow that survives a hostile operator needs a client-side commit–reveal scheme, which this deliberately is not.
+## Development 🛠️
 
-## Running it
-
-Requires Node 24.x and pnpm 11.15.0.
+Development requires Node 24.x and pnpm 11.15.0.
 
 ```sh
 pnpm install
@@ -50,23 +59,8 @@ mkdir -p data-dev
 DATA_DIR=./data-dev pnpm dev
 ```
 
-`pnpm check` runs the full gate: format, lint, migration check, build, typecheck, and tests.
-
-Development setup, architecture, and contribution conventions live in [CONTRIBUTING.md](CONTRIBUTING.md). Report vulnerabilities through the process in [SECURITY.md](SECURITY.md).
-
-## Deploying
-
-Compose builds the image from this repo. The only state is `/data`, which holds the SQLite database and must be a persistent volume.
-
-```sh
-cp .env.example .env
-docker compose up -d
-```
-
-Put it behind a reverse proxy that forwards `X-Forwarded-Host` and `X-Forwarded-Proto`; set `APP_URL` when it cannot. `APP_URL` also names the canonical host: a request arriving for any other hostname is redirected to it, path intact, so an address you have moved on from keeps working for the links already shared on it. Point the old hostname at the app and leave it there. The health endpoint answers on any host, since the container checks itself over 127.0.0.1. Sessions are signed with a secret generated into `/data/auth.secret` on first boot — back that file up with the database, or set `AUTH_SECRET` yourself. Health check: `GET /api/health`.
-
-Everything else in `.env.example` is optional and degrades honestly. With no SMTP settings the app sends no email at all, stops offering password reset, and drops the email section from the account page rather than explaining itself. Each social provider appears on the sign-in page only when both halves of its credential are present; their callback URLs are `/api/auth/callback/google` and `/api/auth/callback/discord`.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for architecture and checks. Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 
 ## License
 
-AGPL-3.0-only.
+[GNU Affero General Public License v3.0](LICENSE)
