@@ -1,4 +1,5 @@
 import { getRequest } from '@tanstack/react-start/server'
+import { requireMutationOrigin } from './mutationOrigin'
 
 /**
  * Server functions must funnel through this: a thrown `Response` otherwise
@@ -12,6 +13,13 @@ export async function rpc<T>(work: () => Promise<T> | T): Promise<T> {
     console.error({ event: 'server_function_failed', ...requestContext(), error })
     throw error
   }
+}
+
+export function mutationRpc<T>(work: () => Promise<T> | T, request?: Request) {
+  return rpc(() => {
+    requireMutationOrigin(request)
+    return work()
+  })
 }
 
 function requestContext() {

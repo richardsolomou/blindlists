@@ -2,8 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { app } from './app'
 import { configuredProviders } from './auth'
-import { requireMutationOrigin } from './mutationOrigin'
-import { rpc } from './rpc'
+import { mutationRpc, rpc } from './rpc'
 import { createGroupSchema, gameSchema, memberSchema, saveDraftSchema, sealListSchema, startGameSchema, tokenSchema } from './schemas'
 import { currentUser, requireUser } from './session'
 
@@ -34,8 +33,7 @@ export const emailPreference = createServerFn({ method: 'GET' }).handler(() =>
 export const setEmailPreference = createServerFn({ method: 'POST' })
   .validator(z.object({ gameEmails: z.boolean() }))
   .handler(({ data }) =>
-    rpc(async () => {
-      requireMutationOrigin()
+    mutationRpc(async () => {
       const viewer = await requireUser()
       return app().service.setEmailPreference(viewer.id, data.gameEmails)
     }),
@@ -51,8 +49,7 @@ export const myGroups = createServerFn({ method: 'GET' }).handler(() =>
 export const createGroup = createServerFn({ method: 'POST' })
   .validator(createGroupSchema)
   .handler(({ data }) =>
-    rpc(async () => {
-      requireMutationOrigin()
+    mutationRpc(async () => {
       const viewer = await requireUser()
       return app().service.createGroup(viewer.id, data.name)
     }),
@@ -83,8 +80,7 @@ export const game = createServerFn({ method: 'GET' })
 export const joinGroup = createServerFn({ method: 'POST' })
   .validator(tokenSchema)
   .handler(({ data }) =>
-    rpc(async () => {
-      requireMutationOrigin()
+    mutationRpc(async () => {
       const viewer = await requireUser()
       return app().service.joinGroup(data.token, viewer.id)
     }),
@@ -93,8 +89,7 @@ export const joinGroup = createServerFn({ method: 'POST' })
 export const startGame = createServerFn({ method: 'POST' })
   .validator(startGameSchema)
   .handler(({ data }) =>
-    rpc(async () => {
-      requireMutationOrigin()
+    mutationRpc(async () => {
       const viewer = await requireUser()
       return app().service.startGame(data.token, viewer.id, data.userIds)
     }),
@@ -103,8 +98,7 @@ export const startGame = createServerFn({ method: 'POST' })
 export const deleteGroup = createServerFn({ method: 'POST' })
   .validator(tokenSchema)
   .handler(({ data }) =>
-    rpc(async () => {
-      requireMutationOrigin()
+    mutationRpc(async () => {
       const viewer = await requireUser()
       app().service.deleteGroup(data.token, viewer.id)
       return null
@@ -114,8 +108,7 @@ export const deleteGroup = createServerFn({ method: 'POST' })
 export const deleteGame = createServerFn({ method: 'POST' })
   .validator(gameSchema)
   .handler(({ data }) =>
-    rpc(async () => {
-      requireMutationOrigin()
+    mutationRpc(async () => {
       const viewer = await requireUser()
       return app().service.deleteGame(data.token, viewer.id, data.gameId)
     }),
@@ -124,8 +117,7 @@ export const deleteGame = createServerFn({ method: 'POST' })
 export const sealList = createServerFn({ method: 'POST' })
   .validator(sealListSchema)
   .handler(({ data }) =>
-    rpc(async () => {
-      requireMutationOrigin()
+    mutationRpc(async () => {
       const viewer = await requireUser()
       return app().service.sealList(data.token, viewer.id, data.list)
     }),
@@ -134,8 +126,7 @@ export const sealList = createServerFn({ method: 'POST' })
 export const unsealList = createServerFn({ method: 'POST' })
   .validator(tokenSchema)
   .handler(({ data }) =>
-    rpc(async () => {
-      requireMutationOrigin()
+    mutationRpc(async () => {
       const viewer = await requireUser()
       return app().service.unsealList(data.token, viewer.id)
     }),
@@ -145,8 +136,7 @@ export const unsealList = createServerFn({ method: 'POST' })
 export const saveDraft = createServerFn({ method: 'POST' })
   .validator(saveDraftSchema)
   .handler(({ data }) =>
-    rpc(async () => {
-      requireMutationOrigin()
+    mutationRpc(async () => {
       const viewer = await requireUser()
       const saved = app().service.saveDraft(data.token, viewer.id, data.draft)
       // Saving means the typing stopped: one call does both.
@@ -158,8 +148,7 @@ export const saveDraft = createServerFn({ method: 'POST' })
 export const setTyping = createServerFn({ method: 'POST' })
   .validator(tokenSchema)
   .handler(({ data }) =>
-    rpc(async () => {
-      requireMutationOrigin()
+    mutationRpc(async () => {
       const viewer = await requireUser()
       app().presence.typing(app().service.memberGroupId(data.token, viewer.id), viewer.id, true)
       return { typing: true }
@@ -169,8 +158,7 @@ export const setTyping = createServerFn({ method: 'POST' })
 export const joinGame = createServerFn({ method: 'POST' })
   .validator(memberSchema)
   .handler(({ data }) =>
-    rpc(async () => {
-      requireMutationOrigin()
+    mutationRpc(async () => {
       const viewer = await requireUser()
       return app().service.joinGame(data.token, viewer.id, data.userId)
     }),
@@ -179,8 +167,7 @@ export const joinGame = createServerFn({ method: 'POST' })
 export const dropPlayer = createServerFn({ method: 'POST' })
   .validator(memberSchema)
   .handler(({ data }) =>
-    rpc(async () => {
-      requireMutationOrigin()
+    mutationRpc(async () => {
       const viewer = await requireUser()
       return app().service.dropPlayer(data.token, viewer.id, data.userId)
     }),
@@ -189,8 +176,7 @@ export const dropPlayer = createServerFn({ method: 'POST' })
 export const removeMember = createServerFn({ method: 'POST' })
   .validator(memberSchema)
   .handler(({ data }) =>
-    rpc(async () => {
-      requireMutationOrigin()
+    mutationRpc(async () => {
       const viewer = await requireUser()
       return app().service.removeMember(data.token, viewer.id, data.userId)
     }),
