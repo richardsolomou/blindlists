@@ -75,8 +75,12 @@ function Header() {
 
   return (
     <header className="flex items-center justify-between gap-4 border-b border-edge py-4">
-      <Link to="/" className="font-display text-sm tracking-[0.3em] text-parchment uppercase transition-colors hover:text-brass">
-        Sealed Lists
+      <Link
+        to="/"
+        className="flex items-center gap-2.5 font-display text-sm tracking-[0.3em] text-parchment uppercase transition-colors hover:text-brass"
+      >
+        <img src="/favicon.svg" alt="" className="size-8" />
+        <span>Sealed Lists</span>
       </Link>
       {viewer ? (
         <DropdownMenu>
