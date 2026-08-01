@@ -1,9 +1,8 @@
 import { getRequest } from '@tanstack/react-start/server'
 
 /**
- * CSRF protection, called by every mutating server function: the request must
- * carry an Origin belonging to this deployment. `APP_URL` is only needed when
- * the reverse proxy cannot pass the public host through.
+ * The request must carry an Origin belonging to this deployment. `APP_URL` is
+ * only needed when the reverse proxy cannot pass the public host through.
  */
 export function requireMutationOrigin(request = getRequest()) {
   const origin = request.headers.get('origin')
