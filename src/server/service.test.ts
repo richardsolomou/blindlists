@@ -30,7 +30,7 @@ beforeEach(() => {
     gameStarted: (gameId, startedBy) => notified.push(`started:${startedBy}`),
     gameRevealed: () => notified.push('revealed'),
   }
-  const events: GroupEvents = { publish: (groupId) => changed.push(groupId), subscribe: () => () => {} }
+  const events: GroupEvents = { publish: (groupId) => changed.push(groupId) }
   service = new SealedListsService(new Repository(database), () => now, notifier, events)
   for (const name of ['Alex', 'Rich', 'Dan', 'Sam']) makeUser(name.toLowerCase(), name)
 })

@@ -11,6 +11,8 @@ services:
       # links are built from it.
       APP_URL: ${APP_URL:-}
       AUTH_SECRET: ${AUTH_SECRET:-}
+      CENTRIFUGO_API_KEY: ${CENTRIFUGO_API_KEY:?Set CENTRIFUGO_API_KEY in .env}
+      CENTRIFUGO_URL: http://centrifugo:8000
       # Leave the mail settings empty and the app simply sends no email.
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
@@ -26,3 +28,21 @@ services:
     volumes:
       # The SQLite database holding every game and sealed list.
       - ${DATA_HOST_DIR:-./sealed-lists-data}:/data
+    depends_on:
+      - centrifugo
+
+  centrifugo:
+    image: centrifugo/centrifugo:v6.9.1
+    restart: unless-stopped
+    command: centrifugo --config=/centrifugo/config.json
+    environment:
+      CENTRIFUGO_CLIENT_ALLOWED_ORIGINS: ${APP_URL:-}
+      CENTRIFUGO_CLIENT_PROXY_CONNECT_ENDPOINT: ${CENTRIFUGO_CONNECT_URL:-http://sealed-lists:3000/api/realtime/connect}
+      CENTRIFUGO_HTTP_API_KEY: ${CENTRIFUGO_API_KEY:?Set CENTRIFUGO_API_KEY in .env}
+      CENTRIFUGO_VAR_API_KEY: ${CENTRIFUGO_API_KEY:?Set CENTRIFUGO_API_KEY in .env}
+    volumes:
+      - ./centrifugo.json:/centrifugo/config.json:ro
+    ports:
+      - 127.0.0.1:${CENTRIFUGO_PORT:-8000}:8000
+    extra_hosts:
+      - host.docker.internal:host-gateway

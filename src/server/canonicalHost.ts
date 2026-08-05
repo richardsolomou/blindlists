@@ -6,12 +6,8 @@
  * rather than redirected, since guessing at a broken URL is worse than ignoring
  * it. Kept apart from the middleware so the rule can be tested without a server.
  */
-/**
- * The container checks its own health over 127.0.0.1, which is never the
- * canonical host, so redirecting it would send the check out to the internet to
- * ask a different machine whether this one is alive.
- */
-const SERVED_ON_ANY_HOST = new Set(['/api/health'])
+/** Internal health and realtime authorization calls must not leave the host. */
+const SERVED_ON_ANY_HOST = new Set(['/api/health', '/api/realtime/connect'])
 
 export function canonicalRedirect(requestUrl: string, appUrl: string | undefined): string | null {
   if (!appUrl?.trim()) return null

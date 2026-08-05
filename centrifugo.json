@@ -1,0 +1,27 @@
+{
+  "client": {
+    "proxy": {
+      "connect": {
+        "enabled": true,
+        "endpoint": "http://sealed-lists:3000/api/realtime/connect",
+        "http_headers": ["Cookie", "Origin", "Sec-Fetch-Site", "X-Forwarded-Host", "X-Forwarded-Proto"],
+        "http": {
+          "static_headers": {
+            "X-API-Key": "${CENTRIFUGO_VAR_API_KEY}"
+          }
+        }
+      }
+    }
+  },
+  "channel": {
+    "namespaces": [
+      {
+        "name": "group",
+        "presence": true,
+        "join_leave": true,
+        "allow_presence_for_subscriber": true,
+        "force_push_join_leave": true
+      }
+    ]
+  }
+}

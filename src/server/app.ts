@@ -4,7 +4,6 @@ import { createGroupEvents, type GroupEvents } from '../adapters/events'
 import { databasePath, openDatabase, type SealedListsDatabase } from '../db/connection'
 import { Repository } from '../db/repository'
 import { authSecret, createAuth } from './auth'
-import { Presence } from './presence'
 import { buildNotifier } from './notify'
 import { SealedListsService } from './service'
 
@@ -12,7 +11,6 @@ type App = {
   database: SealedListsDatabase
   service: SealedListsService
   events: GroupEvents
-  presence: Presence
   auth: ReturnType<typeof createAuth>
   emailConfigured: boolean
 }
@@ -28,13 +26,15 @@ export function app(): App {
     const database = openDatabase(file)
     const repository = new Repository(database)
     const email = buildEmailDelivery()
-    const events = createGroupEvents()
+    const events = createGroupEvents({
+      apiKey: process.env.CENTRIFUGO_API_KEY ?? '',
+      url: process.env.CENTRIFUGO_URL?.trim() || 'http://localhost:8000',
+    })
     const service = new SealedListsService(repository, Date.now, buildNotifier(repository, email, appUrl), events)
     globalApp.sealedListsApp = {
       database,
       service,
       events,
-      presence: new Presence(),
       auth: createAuth(database, authSecret(path.dirname(file)), email),
       emailConfigured: email.configured,
     }

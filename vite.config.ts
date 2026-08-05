@@ -7,7 +7,11 @@ import { nitro } from 'nitro/vite'
 
 export default defineConfig({
   resolve: { alias: { '@': path.resolve(import.meta.dirname, 'src') } },
-  server: { port: 3000 },
+  server: {
+    allowedHosts: ['host.docker.internal'],
+    port: 3000,
+    proxy: { '/connection': { target: 'ws://localhost:8000', ws: true } },
+  },
   plugins: [
     tanstackStart(),
     nitro({

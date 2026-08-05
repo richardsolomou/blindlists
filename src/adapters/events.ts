@@ -1,34 +1,34 @@
-import { EventEmitter } from 'node:events'
+export type GroupEvent = { type: 'change' } | { type: 'typing'; userId: string; typing: boolean }
 
-/** Somewhere to say "this group changed" so open pages can refetch. */
 export type GroupEvents = {
-  publish: (groupId: string) => void
-  subscribe: (groupId: string, listener: () => void) => () => void
+  publish: (groupId: string, event?: GroupEvent) => void
 }
 
-/**
- * In-process fan-out. Events carry a group id and nothing else: a listener is
- * told to refetch, and the refetch goes through `gameView` like any other read,
- * so the stream can never be the thing that leaks a list.
- *
- * One process serves one SQLite file, so there is nothing to distribute.
- */
-export function createGroupEvents(): GroupEvents {
-  const emitter = new EventEmitter()
-  // One listener per open tab, and `StreamLimiter` is what bounds those, so the
-  // emitter's own leak warning would only ever fire on a busy evening.
-  emitter.setMaxListeners(0)
+type RealtimeConfig = {
+  apiKey: string
+  url: string
+  fetch?: typeof fetch
+}
 
+export const groupChannel = (groupId: string) => `group:${groupId}`
+
+export function createGroupEvents(config: RealtimeConfig): GroupEvents {
+  const request = config.fetch ?? fetch
   return {
-    publish: (groupId) => {
-      emitter.emit('change', groupId)
-    },
-    subscribe: (groupId, listener) => {
-      const handler = (changed: string) => {
-        if (changed === groupId) listener()
-      }
-      emitter.on('change', handler)
-      return () => emitter.off('change', handler)
+    publish(groupId, event = { type: 'change' }) {
+      void request(`${config.url}/api/publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-API-Key': config.apiKey },
+        body: JSON.stringify({ channel: groupChannel(groupId), data: event }),
+      })
+        .then(async (response) => {
+          if (!response.ok) throw new Error(`Centrifugo publish failed (${response.status})`)
+          const result: unknown = await response.json()
+          if (typeof result === 'object' && result !== null && 'error' in result && result.error) {
+            throw new Error('Centrifugo rejected a publication')
+          }
+        })
+        .catch((error: unknown) => console.error({ event: 'realtime_publish_failed', error }))
     },
   }
 }

@@ -1,9 +1,10 @@
 # Deployment
 
-Sealed Lists runs as one container with one persistent `/data` volume. Compose builds the image from this repository:
+Sealed Lists runs the application and a Centrifugo realtime service. Only the application's `/data` volume is persistent. Before starting, copy the example environment and generate the private key shared by those two services. Paste the generated value into `CENTRIFUGO_API_KEY` in `.env`, then start Compose.
 
 ```sh
 cp .env.example .env
+openssl rand -hex 32
 docker compose up -d
 ```
 
@@ -16,6 +17,31 @@ Lists and games do not expire. Deleting a game or group through the application 
 ## Reverse proxy
 
 The reverse proxy must forward `X-Forwarded-Host` and `X-Forwarded-Proto`. Set `APP_URL` when it cannot represent the public origin through those headers.
+
+Forward normal traffic to the application on port 3020 and `/connection/*` to Centrifugo on the host-only port 8000. The latter must support WebSocket upgrades. Do not expose Centrifugo's port directly to the internet: its HTTP API is for the application only.
+
+For example, the two upstreams in nginx are:
+
+```nginx
+location /connection/ {
+    proxy_pass http://127.0.0.1:8000;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+
+location / {
+    proxy_pass http://127.0.0.1:3020;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+Set `APP_URL` to restrict Centrifugo's accepted browser origins. The application independently checks the forwarded origin before authorizing each connection.
 
 When set, `APP_URL` is also the canonical host. Requests arriving on another hostname are redirected with their path and query intact, allowing previously shared group links to survive a hostname change. Keep the old hostname pointed at the application for the redirect to work.
 
