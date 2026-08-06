@@ -1,0 +1,15 @@
+services:
+  centrifugo:
+    image: centrifugo/centrifugo:v6.9.1
+    command: centrifugo --config=/centrifugo/config.json
+    environment:
+      CENTRIFUGO_CLIENT_ALLOWED_ORIGINS: http://localhost:3000
+      CENTRIFUGO_CLIENT_PROXY_CONNECT_ENDPOINT: http://host.docker.internal:3000/api/centrifugo/connect
+      CENTRIFUGO_HTTP_API_KEY: dev-api
+      CENTRIFUGO_VAR_PROXY_SECRET: dev-proxy
+    volumes:
+      - ./centrifugo.json:/centrifugo/config.json:ro
+    ports:
+      - 127.0.0.1:8000:8000
+    extra_hosts:
+      - host.docker.internal:host-gateway

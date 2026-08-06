@@ -9,7 +9,7 @@ Sealed army list submission for Warhammer 40,000, and nothing else. Lists are op
 ## Commands
 
 - `pnpm check` — the full gate (format, lint, `db:check`, build, typecheck, tests). Build runs before typecheck because it generates `src/routeTree.gen.ts`; on a fresh clone typecheck fails until you build.
-- Dev server: follow the Centrifugo and application commands in [README.md](README.md); the production image runs both processes itself.
+- Dev server: `compose.dev.yml` runs Centrifugo beside the host application; the production image runs both processes itself. Follow [README.md](README.md) for the commands.
 - Lint and format are oxlint + oxfmt, not ESLint/Prettier. Warnings are denied.
 - Toolchain: Node 24.x and pnpm 11.15.0, as pinned in `package.json`.
 
