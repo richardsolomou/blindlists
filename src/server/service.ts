@@ -65,7 +65,7 @@ export class SealedListsService {
     return this.groupView(token, userId)
   }
 
-  /** The group behind a link, for a member: all an event stream needs to know. */
+  /** The group behind a link, for a member: all a realtime connection needs to know. */
   memberGroupId(token: string, userId: string) {
     return this.requireMembership(token, userId).group.id
   }
