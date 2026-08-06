@@ -1,13 +1,16 @@
 {
   "client": {
+    "channel_limit": 1,
+    "connection_limit": 200,
+    "user_connection_limit": 5,
     "proxy": {
       "connect": {
         "enabled": true,
-        "endpoint": "http://sealed-lists:3000/api/realtime/connect",
+        "endpoint": "http://sealed-lists:3000/api/centrifugo/connect",
         "http_headers": ["Cookie", "Origin", "Sec-Fetch-Site", "X-Forwarded-Host", "X-Forwarded-Proto"],
         "http": {
           "static_headers": {
-            "X-API-Key": "${CENTRIFUGO_VAR_API_KEY}"
+            "X-Proxy-Secret": "${CENTRIFUGO_VAR_PROXY_SECRET}"
           }
         }
       }

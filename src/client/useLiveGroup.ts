@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Centrifuge, type ClientInfo } from 'centrifuge'
 import { useEffect, useState } from 'react'
-import type { GroupEvent } from '../adapters/events'
+import type { RealtimeEvent } from '../adapters/centrifugo'
 import { groupQuery } from './queries'
 
 const TYPING_TTL_MS = 6_000
@@ -103,7 +103,7 @@ function websocketUrl() {
   return url.toString()
 }
 
-function groupEvent(value: unknown): GroupEvent | undefined {
+function groupEvent(value: unknown): RealtimeEvent | undefined {
   if (typeof value !== 'object' || value === null || !('type' in value)) return undefined
   if (value.type === 'change') return { type: 'change' }
   if (

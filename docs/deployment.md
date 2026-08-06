@@ -1,9 +1,10 @@
 # Deployment
 
-Sealed Lists runs the application and a Centrifugo realtime service. Only the application's `/data` volume is persistent. Before starting, copy the example environment and generate the private key shared by those two services. Paste the generated value into `CENTRIFUGO_API_KEY` in `.env`, then start Compose.
+Sealed Lists runs the application and a Centrifugo realtime service. Only the application's `/data` volume is persistent. Before starting, copy the example environment and generate separate secrets for publishing and connection authorization. Paste them into `CENTRIFUGO_API_KEY` and `CENTRIFUGO_PROXY_SECRET` in `.env`, then start Compose.
 
 ```sh
 cp .env.example .env
+openssl rand -hex 32
 openssl rand -hex 32
 docker compose up -d
 ```

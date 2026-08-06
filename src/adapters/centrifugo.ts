@@ -1,7 +1,7 @@
-export type GroupEvent = { type: 'change' } | { type: 'typing'; userId: string; typing: boolean }
+export type RealtimeEvent = { type: 'change' } | { type: 'typing'; userId: string; typing: boolean }
 
-export type GroupEvents = {
-  publish: (groupId: string, event?: GroupEvent) => void
+export type RealtimePublisher = {
+  publish: (groupId: string, event?: RealtimeEvent) => void
 }
 
 type RealtimeConfig = {
@@ -12,7 +12,7 @@ type RealtimeConfig = {
 
 export const groupChannel = (groupId: string) => `group:${groupId}`
 
-export function createGroupEvents(config: RealtimeConfig): GroupEvents {
+export function createCentrifugoPublisher(config: RealtimeConfig): RealtimePublisher {
   const request = config.fetch ?? fetch
   return {
     publish(groupId, event = { type: 'change' }) {

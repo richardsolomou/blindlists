@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import type { GroupEvents } from '../adapters/events'
+import type { RealtimePublisher } from '../adapters/centrifugo'
 import { normalizeList } from '../core/game'
 import { openDatabase, type SealedListsDatabase } from '../db/connection'
 import { Repository } from '../db/repository'
@@ -30,8 +30,8 @@ beforeEach(() => {
     gameStarted: (gameId, startedBy) => notified.push(`started:${startedBy}`),
     gameRevealed: () => notified.push('revealed'),
   }
-  const events: GroupEvents = { publish: (groupId) => changed.push(groupId) }
-  service = new SealedListsService(new Repository(database), () => now, notifier, events)
+  const realtime: RealtimePublisher = { publish: (groupId) => changed.push(groupId) }
+  service = new SealedListsService(new Repository(database), () => now, notifier, realtime)
   for (const name of ['Alex', 'Rich', 'Dan', 'Sam']) makeUser(name.toLowerCase(), name)
 })
 

@@ -1,8 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { timingSafeEqual } from 'node:crypto'
 import { z } from 'zod'
-import { groupChannel } from '../../adapters/events'
-import { app } from '../../server/app'
+import { groupChannel } from '../../adapters/centrifugo'
+import { app, requiredEnvironment } from '../../server/app'
 import { requireMutationOrigin } from '../../server/mutationOrigin'
 import { currentUser } from '../../server/session'
 
@@ -10,11 +10,11 @@ const connectRequest = z.object({ data: z.object({ token: z.string() }) })
 
 const disconnect = () => Response.json({ disconnect: { code: 4501, reason: 'unauthorized' } })
 
-export const Route = createFileRoute('/api/realtime/connect')({
+export const Route = createFileRoute('/api/centrifugo/connect')({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        if (!hasApiKey(request)) return disconnect()
+        if (!hasProxySecret(request)) return disconnect()
         try {
           requireMutationOrigin(request)
         } catch (error) {
@@ -43,10 +43,10 @@ export const Route = createFileRoute('/api/realtime/connect')({
   },
 })
 
-function hasApiKey(request: Request) {
-  const expected = process.env.CENTRIFUGO_API_KEY
-  const received = request.headers.get('x-api-key')
-  if (!expected || !received) return false
+function hasProxySecret(request: Request) {
+  const expected = requiredEnvironment('CENTRIFUGO_PROXY_SECRET')
+  const received = request.headers.get('x-proxy-secret')
+  if (!received) return false
   const left = Buffer.from(expected)
   const right = Buffer.from(received)
   return left.length === right.length && timingSafeEqual(left, right)

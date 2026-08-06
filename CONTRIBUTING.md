@@ -9,7 +9,8 @@ Install Node 24.x and pnpm 11.15.0, then run:
 ```sh
 pnpm install
 mkdir -p data-dev
-DATA_DIR=./data-dev pnpm dev
+CENTRIFUGO_API_KEY=dev-api CENTRIFUGO_PROXY_SECRET=dev-proxy APP_URL=http://localhost:3000 CENTRIFUGO_CONNECT_URL=http://host.docker.internal:3000/api/centrifugo/connect docker compose up -d centrifugo
+CENTRIFUGO_API_KEY=dev-api CENTRIFUGO_PROXY_SECRET=dev-proxy APP_URL=http://localhost:3000 DATA_DIR=./data-dev pnpm dev --host 0.0.0.0
 ```
 
 Open `http://localhost:3000` and create an account.
@@ -24,14 +25,14 @@ pnpm check
 
 This checks formatting, lint, generated database migrations, the production build, types, and unit tests. The build comes before type checking because it generates `src/routeTree.gen.ts`.
 
-Live updates are not covered by the unit suite. Changes to event streaming or presence must also be tested in two browser contexts: act in one and verify that the other updates without interaction. Wait for a visible element rather than network idle because a group page keeps its event stream open.
+Live updates are not covered by the unit suite. Changes to realtime connections or presence must also be tested in two browser contexts: act in one and verify that the other updates without interaction. Wait for a visible element rather than network idle because a group page keeps its WebSocket open.
 
 ## Layout
 
 - `src/core` — the isomorphic domain: limits, types, normalization, and visibility rules. It has no IO or framework imports.
-- `src/adapters` — email delivery and the in-process event bus.
+- `src/adapters` — email delivery and Centrifugo publishing.
 - `src/db` — the Drizzle schema, SQLite connection, and transaction-aware repository. Generated migrations live under `drizzle/`.
-- `src/server` — application setup, authentication, services, server functions, presence, notifications, and HTTP guards.
+- `src/server` — application setup, authentication, services, server functions, notifications, and HTTP guards.
 - `src/client` — query definitions, components, and hooks.
 - `src/components/ui` — shadcn components generated with Base UI.
 - `src/routes` — TanStack Start file routes and API handlers; keep them as coordinators.

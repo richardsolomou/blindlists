@@ -7,7 +7,7 @@
  * it. Kept apart from the middleware so the rule can be tested without a server.
  */
 /** Internal health and realtime authorization calls must not leave the host. */
-const SERVED_ON_ANY_HOST = new Set(['/api/health', '/api/realtime/connect'])
+const SERVED_ON_ANY_HOST = new Set(['/api/health', '/api/centrifugo/connect'])
 
 export function canonicalRedirect(requestUrl: string, appUrl: string | undefined): string | null {
   if (!appUrl?.trim()) return null

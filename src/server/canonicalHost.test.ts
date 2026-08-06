@@ -43,7 +43,7 @@ describe('canonicalRedirect', () => {
   })
 
   it('leaves realtime authorization alone, since Centrifugo calls the application by its service name', () => {
-    expect(canonicalRedirect('http://sealed-lists:3000/api/realtime/connect', canonical)).toBeNull()
+    expect(canonicalRedirect('http://sealed-lists:3000/api/centrifugo/connect', canonical)).toBeNull()
   })
 
   it('still redirects every other path arriving on the wrong host', () => {

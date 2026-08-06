@@ -12,6 +12,7 @@ services:
       APP_URL: ${APP_URL:-}
       AUTH_SECRET: ${AUTH_SECRET:-}
       CENTRIFUGO_API_KEY: ${CENTRIFUGO_API_KEY:?Set CENTRIFUGO_API_KEY in .env}
+      CENTRIFUGO_PROXY_SECRET: ${CENTRIFUGO_PROXY_SECRET:?Set CENTRIFUGO_PROXY_SECRET in .env}
       CENTRIFUGO_URL: http://centrifugo:8000
       # Leave the mail settings empty and the app simply sends no email.
       SMTP_HOST: ${SMTP_HOST:-}
@@ -37,9 +38,9 @@ services:
     command: centrifugo --config=/centrifugo/config.json
     environment:
       CENTRIFUGO_CLIENT_ALLOWED_ORIGINS: ${APP_URL:-}
-      CENTRIFUGO_CLIENT_PROXY_CONNECT_ENDPOINT: ${CENTRIFUGO_CONNECT_URL:-http://sealed-lists:3000/api/realtime/connect}
+      CENTRIFUGO_CLIENT_PROXY_CONNECT_ENDPOINT: ${CENTRIFUGO_CONNECT_URL:-http://sealed-lists:3000/api/centrifugo/connect}
       CENTRIFUGO_HTTP_API_KEY: ${CENTRIFUGO_API_KEY:?Set CENTRIFUGO_API_KEY in .env}
-      CENTRIFUGO_VAR_API_KEY: ${CENTRIFUGO_API_KEY:?Set CENTRIFUGO_API_KEY in .env}
+      CENTRIFUGO_VAR_PROXY_SECRET: ${CENTRIFUGO_PROXY_SECRET:?Set CENTRIFUGO_PROXY_SECRET in .env}
     volumes:
       - ./centrifugo.json:/centrifugo/config.json:ro
     ports:
