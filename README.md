@@ -44,7 +44,9 @@ The only persistent state is `/data`, which contains the SQLite database and gen
 
 ```sh
 cp .env.example .env
-docker compose up -d
+docker build -t sealed-lists .
+docker volume create sealed-lists-data
+docker run -d --name sealed-lists --restart unless-stopped --env-file .env -p 3020:3000 -p 127.0.0.1:8000:8000 -v sealed-lists-data:/data sealed-lists
 ```
 
 Put the app behind a reverse proxy, keep `/data` on a persistent volume, and back it up regularly. See the [deployment guide](docs/deployment.md) for proxy headers, canonical URLs, authentication providers, email, health checks, and backups.
@@ -56,7 +58,7 @@ Development requires Node 24.x and pnpm 11.15.0.
 ```sh
 pnpm install
 mkdir -p data-dev
-CENTRIFUGO_API_KEY=dev-api CENTRIFUGO_PROXY_SECRET=dev-proxy APP_URL=http://localhost:3000 CENTRIFUGO_CONNECT_URL=http://host.docker.internal:3000/api/centrifugo/connect docker compose up -d centrifugo
+docker run --rm -d --name sealed-lists-centrifugo --add-host host.docker.internal:host-gateway -p 127.0.0.1:8000:8000 -e CENTRIFUGO_CLIENT_ALLOWED_ORIGINS=http://localhost:3000 -e CENTRIFUGO_CLIENT_PROXY_CONNECT_ENDPOINT=http://host.docker.internal:3000/api/centrifugo/connect -e CENTRIFUGO_HTTP_API_KEY=dev-api -e CENTRIFUGO_VAR_PROXY_SECRET=dev-proxy -v "$PWD/centrifugo.json:/centrifugo/config.json:ro" centrifugo/centrifugo:v6.9.1 centrifugo --config=/centrifugo/config.json
 CENTRIFUGO_API_KEY=dev-api CENTRIFUGO_PROXY_SECRET=dev-proxy APP_URL=http://localhost:3000 DATA_DIR=./data-dev pnpm dev --host 0.0.0.0
 ```
 
