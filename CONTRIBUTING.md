@@ -4,13 +4,11 @@ Thanks for helping with Sealed Lists. We keep the codebase small and the trust m
 
 ## Development setup
 
-Install Node 24.x and pnpm 11.15.0, then run:
+Install Node 24.x, pnpm 11.15.0, Just 1.58.0, and Docker, then run:
 
 ```sh
-pnpm install
-mkdir -p data-dev
-docker run --rm -d --name sealed-lists-realtime --add-host host.docker.internal:host-gateway -e CENTRIFUGO_CLIENT_ALLOWED_ORIGINS=http://localhost:3000 -e CENTRIFUGO_CLIENT_PROXY_CONNECT_ENDPOINT=http://host.docker.internal:3000/api/centrifugo/connect -e CENTRIFUGO_HTTP_API_KEY=dev-api -e CENTRIFUGO_VAR_PROXY_SECRET=dev-proxy -v "$PWD/centrifugo.json:/centrifugo/config.json:ro" -p 127.0.0.1:8000:8000 centrifugo/centrifugo:v6.9.1 centrifugo --config=/centrifugo/config.json
-CENTRIFUGO_API_KEY=dev-api CENTRIFUGO_PROXY_SECRET=dev-proxy APP_URL=http://localhost:3000 DATA_DIR=./data-dev pnpm dev --host 0.0.0.0
+just install
+just dev
 ```
 
 Open `http://localhost:3000` and create an account.
@@ -20,7 +18,7 @@ Open `http://localhost:3000` and create an account.
 Run the complete local check suite with:
 
 ```sh
-pnpm check
+just check
 ```
 
 This checks formatting, lint, generated database migrations, the production build, types, and unit tests. The build comes before type checking because it generates `src/routeTree.gen.ts`.

@@ -53,13 +53,11 @@ Put the app behind a reverse proxy, keep `/data` on a persistent volume, and bac
 
 ## Development 🛠️
 
-Development requires Node 24.x and pnpm 11.15.0.
+Development requires Node 24.x, pnpm 11.15.0, Just 1.58.0, and Docker.
 
 ```sh
-pnpm install
-mkdir -p data-dev
-docker run --rm -d --name sealed-lists-realtime --add-host host.docker.internal:host-gateway -e CENTRIFUGO_CLIENT_ALLOWED_ORIGINS=http://localhost:3000 -e CENTRIFUGO_CLIENT_PROXY_CONNECT_ENDPOINT=http://host.docker.internal:3000/api/centrifugo/connect -e CENTRIFUGO_HTTP_API_KEY=dev-api -e CENTRIFUGO_VAR_PROXY_SECRET=dev-proxy -v "$PWD/centrifugo.json:/centrifugo/config.json:ro" -p 127.0.0.1:8000:8000 centrifugo/centrifugo:v6.9.1 centrifugo --config=/centrifugo/config.json
-CENTRIFUGO_API_KEY=dev-api CENTRIFUGO_PROXY_SECRET=dev-proxy APP_URL=http://localhost:3000 DATA_DIR=./data-dev pnpm dev --host 0.0.0.0
+just install
+just dev
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for architecture and checks. Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).

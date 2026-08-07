@@ -8,10 +8,10 @@ Sealed army list submission for Warhammer 40,000, and nothing else. Lists are op
 
 ## Commands
 
-- `pnpm check` — the full gate (format, lint, `db:check`, build, typecheck, tests). Build runs before typecheck because it generates `src/routeTree.gen.ts`; on a fresh clone typecheck fails until you build.
-- Dev server: run the pinned Centrifugo image beside the host application; the production image runs Caddy, the application, and Centrifugo itself. Follow [README.md](README.md) for the commands.
+- `just check` — the full gate (format, lint, `db:check`, build, typecheck, tests). Build runs before typecheck because it generates `src/routeTree.gen.ts`; on a fresh clone typecheck fails until you build.
+- `just dev` runs the pinned Centrifugo image beside the host application and removes it on exit; the production image runs Caddy, the application, and Centrifugo itself.
 - Lint and format are oxlint + oxfmt, not ESLint/Prettier. Warnings are denied.
-- Toolchain: Node 24.x and pnpm 11.15.0, as pinned in `package.json`.
+- Toolchain: Node 24.x and pnpm 11.15.0, as pinned in `package.json`, plus Just 1.58.0 as pinned in CI.
 
 ## Load-bearing rules
 
