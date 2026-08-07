@@ -37,6 +37,12 @@ typecheck:
 test *args:
     pnpm exec vitest run {{ args }}
 
+db-generate:
+    pnpm db:generate
+
+ui *args:
+    pnpm exec shadcn {{ args }}
+
 check:
     pnpm check
 

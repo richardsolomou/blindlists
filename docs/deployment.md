@@ -6,7 +6,7 @@ The Sealed Lists image contains both the application and Centrifugo. They run as
 cp .env.example .env
 openssl rand -hex 32
 openssl rand -hex 32
-docker build -t sealed-lists .
+just image
 docker volume create sealed-lists-data
 docker run -d --name sealed-lists --restart unless-stopped --env-file .env -p 3020:3000 -v sealed-lists-data:/data sealed-lists
 ```

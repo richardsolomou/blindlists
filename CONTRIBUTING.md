@@ -42,5 +42,5 @@ Live updates are not covered by the unit suite. Changes to realtime connections 
 - Route state changes through `Service`, and keep the final-list reveal inside the repository transaction.
 - Wrap server-function reads in `rpc()` and mutations in `mutationRpc()`. Authorization remains in the service; route redirects are only user experience.
 - Keep query definitions in `src/client/queries.ts`. Live events only trigger a refetch and never carry list data.
-- Generate database migrations with `pnpm db:generate`; never edit one that may already have been applied.
+- Generate database migrations with `just db-generate`; never edit one that may already have been applied.
 - Add behavior-focused tests for new functionality and security-sensitive refactors.
