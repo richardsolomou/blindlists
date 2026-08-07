@@ -46,7 +46,7 @@ The only persistent state is `/data`, which contains the SQLite database and gen
 cp .env.example .env
 docker build -t sealed-lists .
 docker volume create sealed-lists-data
-docker run -d --name sealed-lists --restart unless-stopped --env-file .env -p 3020:3000 -p 127.0.0.1:8000:8000 -v sealed-lists-data:/data sealed-lists
+docker run -d --name sealed-lists --restart unless-stopped --env-file .env -p 3020:3000 -v sealed-lists-data:/data sealed-lists
 ```
 
 Put the app behind a reverse proxy, keep `/data` on a persistent volume, and back it up regularly. See the [deployment guide](docs/deployment.md) for proxy headers, canonical URLs, authentication providers, email, health checks, and backups.
