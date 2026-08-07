@@ -42,10 +42,12 @@ describe('canonicalRedirect', () => {
     expect(canonicalRedirect('http://127.0.0.1:3000/api/health', canonical)).toBeNull()
   })
 
+  it('leaves realtime authorization alone, since Centrifugo calls the application by its service name', () => {
+    expect(canonicalRedirect('http://sealed-lists:3000/api/centrifugo/connect', canonical)).toBeNull()
+  })
+
   it('still redirects every other path arriving on the wrong host', () => {
-    expect(canonicalRedirect('http://127.0.0.1:3000/api/events?group=abc', canonical)).toBe(
-      'https://sealed-lists.ras.sh/api/events?group=abc',
-    )
+    expect(canonicalRedirect('http://127.0.0.1:3000/api/auth/session', canonical)).toBe('https://sealed-lists.ras.sh/api/auth/session')
   })
 
   it('serves rather than guesses when the canonical value is not a URL', () => {

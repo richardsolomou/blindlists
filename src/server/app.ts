@@ -1,18 +1,16 @@
 import path from 'node:path'
 import { buildEmailDelivery } from '../adapters/email'
-import { createGroupEvents, type GroupEvents } from '../adapters/events'
+import { createCentrifugoPublisher, type RealtimePublisher } from '../adapters/centrifugo'
 import { databasePath, openDatabase, type SealedListsDatabase } from '../db/connection'
 import { Repository } from '../db/repository'
 import { authSecret, createAuth } from './auth'
-import { Presence } from './presence'
 import { buildNotifier } from './notify'
 import { SealedListsService } from './service'
 
 type App = {
   database: SealedListsDatabase
   service: SealedListsService
-  events: GroupEvents
-  presence: Presence
+  realtime: RealtimePublisher
   auth: ReturnType<typeof createAuth>
   emailConfigured: boolean
 }
@@ -28,16 +26,24 @@ export function app(): App {
     const database = openDatabase(file)
     const repository = new Repository(database)
     const email = buildEmailDelivery()
-    const events = createGroupEvents()
-    const service = new SealedListsService(repository, Date.now, buildNotifier(repository, email, appUrl), events)
+    const realtime = createCentrifugoPublisher({
+      apiKey: requiredEnvironment('CENTRIFUGO_API_KEY'),
+      url: process.env.CENTRIFUGO_URL?.trim() || 'http://localhost:8000',
+    })
+    const service = new SealedListsService(repository, Date.now, buildNotifier(repository, email, appUrl), realtime)
     globalApp.sealedListsApp = {
       database,
       service,
-      events,
-      presence: new Presence(),
+      realtime,
       auth: createAuth(database, authSecret(path.dirname(file)), email),
       emailConfigured: email.configured,
     }
   }
   return globalApp.sealedListsApp
+}
+
+export function requiredEnvironment(name: string) {
+  const value = process.env[name]?.trim()
+  if (!value) throw new Error(`${name} is required`)
+  return value
 }

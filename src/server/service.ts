@@ -1,4 +1,4 @@
-import type { GroupEvents } from '../adapters/events'
+import type { RealtimePublisher } from '../adapters/centrifugo'
 import { LIST_MAX_LENGTH, MEMBERS_MAX, PLAYERS_MIN, gameView, normalizeList } from '../core/game'
 import type { GroupSummary, GroupView, GameView } from '../core/game'
 import type { Repository } from '../db/repository'
@@ -17,8 +17,8 @@ export class SealedListsService {
   constructor(
     private readonly repository: Repository,
     private readonly clock: () => number = Date.now,
-    private readonly notifier?: Notifier,
-    private readonly events?: GroupEvents,
+    private readonly notifier: Notifier,
+    private readonly realtime: RealtimePublisher,
   ) {}
 
   createGroup(userId: string, name: string) {
@@ -61,11 +61,11 @@ export class SealedListsService {
     const { group } = this.group(token)
     const result = this.repository.joinGroup({ groupId: group.id, userId, now: this.clock() })
     if (result === 'full') throw new Response(`a group holds at most ${MEMBERS_MAX} players`, { status: 409 })
-    this.events?.publish(group.id)
+    this.realtime.publish(group.id)
     return this.groupView(token, userId)
   }
 
-  /** The group behind a link, for a member: all an event stream needs to know. */
+  /** The group behind a link, for a member: all a realtime connection needs to know. */
   memberGroupId(token: string, userId: string) {
     return this.requireMembership(token, userId).group.id
   }
@@ -78,7 +78,7 @@ export class SealedListsService {
   deleteGroup(token: string, userId: string) {
     const { group } = this.requireMembership(token, userId)
     this.repository.deleteGroup(group.id)
-    this.events?.publish(group.id)
+    this.realtime.publish(group.id)
   }
 
   removeMember(token: string, userId: string, targetUserId: string): GroupView {
@@ -88,7 +88,7 @@ export class SealedListsService {
     if (result === 'unknown') throw notFound()
     if (result === 'too-few') throw new Response('a group keeps at least one player', { status: 409 })
     if (collecting) this.notifyIfRevealed(group.id, collecting.id)
-    this.events?.publish(group.id)
+    this.realtime.publish(group.id)
     return this.groupView(token, userId)
   }
 
@@ -115,8 +115,8 @@ export class SealedListsService {
     if (playing.length < PLAYERS_MIN) throw new Response(`a game needs at least ${PLAYERS_MIN} players`, { status: 400 })
     const result = this.repository.createGame({ id: createId(), groupId: group.id, userIds, now: this.clock() })
     if (result === 'in-progress') throw new Response('this group already has a game running', { status: 409 })
-    this.notifier?.gameStarted(result.id, userId)
-    this.events?.publish(group.id)
+    this.notifier.gameStarted(result.id, userId)
+    this.realtime.publish(group.id)
     return this.groupView(token, userId)
   }
 
@@ -130,7 +130,7 @@ export class SealedListsService {
     if (result === 'unknown') throw new Response('you are not playing in this game', { status: 403 })
     if (result === 'locked') throw locked()
     this.notifyIfRevealed(group.id, game.id)
-    this.events?.publish(group.id)
+    this.realtime.publish(group.id)
     return this.groupView(token, userId)
   }
 
@@ -147,7 +147,7 @@ export class SealedListsService {
     if (result === 'unknown') throw new Response('you are not playing in this game', { status: 403 })
     if (result === 'locked') throw locked()
     if (result === 'not-sealed') throw new Response('you have not sealed a list', { status: 409 })
-    this.events?.publish(group.id)
+    this.realtime.publish(group.id)
     return this.groupView(token, userId)
   }
 
@@ -177,7 +177,7 @@ export class SealedListsService {
     if (result === 'unknown') throw notFound()
     if (result === 'locked') throw locked()
     if (result === 'already-in') throw new Response('they are already in this game', { status: 409 })
-    this.events?.publish(group.id)
+    this.realtime.publish(group.id)
     return this.groupView(token, userId)
   }
 
@@ -191,7 +191,7 @@ export class SealedListsService {
     if (result === 'sealed') throw new Response('that player has already sealed a list', { status: 409 })
     if (result === 'too-few') throw new Response(`a game needs at least ${PLAYERS_MIN} players`, { status: 409 })
     this.notifyIfRevealed(group.id, game.id)
-    this.events?.publish(group.id)
+    this.realtime.publish(group.id)
     return this.groupView(token, userId)
   }
 
@@ -203,14 +203,14 @@ export class SealedListsService {
   deleteGame(token: string, userId: string, gameId: string): GroupView {
     const { group } = this.requireMembership(token, userId)
     if (this.repository.deleteGame({ groupId: group.id, gameId }) === 'unknown') throw notFound()
-    this.events?.publish(group.id)
+    this.realtime.publish(group.id)
     return this.groupView(token, userId)
   }
 
   /** Dropping the last outstanding player reveals a game too, so this runs after any of them. */
   private notifyIfRevealed(groupId: string, gameId: string) {
     const game = this.repository.gameById(groupId, gameId)
-    if (game && game.revealedAt !== null) this.notifier?.gameRevealed(gameId)
+    if (game && game.revealedAt !== null) this.notifier.gameRevealed(gameId)
   }
 
   private group(token: string) {

@@ -139,8 +139,7 @@ export const saveDraft = createServerFn({ method: 'POST' })
     mutationRpc(async () => {
       const viewer = await requireUser()
       const saved = app().service.saveDraft(data.token, viewer.id, data.draft)
-      // Saving means the typing stopped: one call does both.
-      app().presence.typing(app().service.memberGroupId(data.token, viewer.id), viewer.id, false)
+      app().realtime.publish(app().service.memberGroupId(data.token, viewer.id), { type: 'typing', userId: viewer.id, typing: false })
       return saved
     }),
   )
@@ -150,7 +149,7 @@ export const setTyping = createServerFn({ method: 'POST' })
   .handler(({ data }) =>
     mutationRpc(async () => {
       const viewer = await requireUser()
-      app().presence.typing(app().service.memberGroupId(data.token, viewer.id), viewer.id, true)
+      app().realtime.publish(app().service.memberGroupId(data.token, viewer.id), { type: 'typing', userId: viewer.id, typing: true })
       return { typing: true }
     }),
   )

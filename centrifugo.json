@@ -1,0 +1,33 @@
+{
+  "client": {
+    "channel_limit": 1,
+    "connection_limit": 200,
+    "user_connection_limit": 5,
+    "proxy": {
+      "connect": {
+        "enabled": true,
+        "endpoint": "http://127.0.0.1:3001/api/centrifugo/connect",
+        "http_headers": ["Cookie", "Origin", "Sec-Fetch-Site", "X-Forwarded-Host", "X-Forwarded-Proto"],
+        "http": {
+          "static_headers": {
+            "X-Proxy-Secret": "${CENTRIFUGO_VAR_PROXY_SECRET}"
+          }
+        }
+      }
+    }
+  },
+  "channel": {
+    "namespaces": [
+      {
+        "name": "group",
+        "presence": true,
+        "join_leave": true,
+        "allow_presence_for_subscriber": true,
+        "force_push_join_leave": true
+      }
+    ]
+  },
+  "health": {
+    "enabled": true
+  }
+}

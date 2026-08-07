@@ -20,7 +20,7 @@ Nobody gets to read an opponent's list first and tailor their own to beat it. Pl
 4. **Edit safely** by unsealing before the reveal, with drafts saved automatically.
 5. **Reveal together** when the final player seals their list.
 
-The group page updates live across every device and shows who is present or typing. Finished games remain as history, and optional email notifications tell players when a list is due or the reveal is ready.
+The group page updates live across every device through the bundled Centrifugo service and shows who is present or typing. Finished games remain as history, and optional email notifications tell players when a list is due or the reveal is ready.
 
 ## Designed for one job 🎯
 
@@ -44,19 +44,20 @@ The only persistent state is `/data`, which contains the SQLite database and gen
 
 ```sh
 cp .env.example .env
-docker compose up -d
+just image
+docker volume create sealed-lists-data
+docker run -d --name sealed-lists --restart unless-stopped --env-file .env -p 3020:3000 -v sealed-lists-data:/data sealed-lists
 ```
 
 Put the app behind a reverse proxy, keep `/data` on a persistent volume, and back it up regularly. See the [deployment guide](docs/deployment.md) for proxy headers, canonical URLs, authentication providers, email, health checks, and backups.
 
 ## Development 🛠️
 
-Development requires Node 24.x and pnpm 11.15.0.
+Development requires Node 24.x, pnpm 11.15.0, Just 1.58.0, and Docker.
 
 ```sh
-pnpm install
-mkdir -p data-dev
-DATA_DIR=./data-dev pnpm dev
+just install
+just dev
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for architecture and checks. Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
